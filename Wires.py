@@ -28,39 +28,29 @@ class Wire(object):
     npaths = 0
     _min_len = 5
     
-    def __init__(self,p,v,m,scalars={},fields={},is_fixed=0,I=1.):
+    def __init__(self,p,v,m,I,L_init=1.,r=1,Bp=1.,is_fixed=0,params={}):
         """Initializes wire, p: array(n,3), v: array(n,3), m: array(n,1)"""
         sp,sv,sm = np.shape(p),np.shape(v),np.shape(m)
         
         if sp[1] == 3 and sp[0] >= Wire._min_len and sv == sp and sm[0] == sp[0] and sm[1] ==1:
-            self.p = np.array(p)
-            self.v = np.array(v)
-            self.m = np.array(m)
+            self.p = np.array(p) # position
+            self.v = np.array(v) # velocity
+            self.m = np.array(m) # mass
+            self.Bp = float(Bp)  # axial flux
+            self.I = float(I)    # current
+            self.r = float(r)    # wire minor radius
+            self.L_init = float(L_init)    # initial length
+            self.is_fixed = bool(is_fixed) # boolean for stationary wires
             
-            self.fields = dict(fields)
-            self.scalars = dict(scalars)
-            self.scalars['is_fixed'] = is_fixed
-            self.scalars['I'] = I
+            self.params = dict(params)
             self.ind = Wire.npaths
             Wire.npaths += 1
         else:
+            print(sp,sv,sm)
             print("Wire initialization error: incorrect shape of input arrays")
             sys.exit()
 
-    def boundary_conditions(self,time,r0=2.):
-        # impervious lower boundary
-        self.v[2:-2,2][self.p[2:-2,2] < r0] = 0
-        self.p[2:-2,2][self.p[2:-2,2] < r0] = r0
-
     def interpolate(self):
-        # TODO: Optimize interpolation and re-parametrize here?
-        # TODO: variable mass density/ adaptive time steps
-        
-
-##        # path smoothing
-##        for j in range(0,3):
-##            self.p[2:-2,j] = smooth(self.p[:,j],window_len=5)[2:-2]
-        
         # reinterpolate spline
         length_param = np.cumsum(np.linalg.norm(np.diff(self.p,axis=0),axis=1))
         length_param = np.append(0,length_param)
@@ -68,11 +58,39 @@ class Wire(object):
         lp = np.linspace(0,length_param[-1],len(length_param))
         self.p = f(lp)
 
+    def get_3D_curve_params(self):
+        """ Uses cubic splines to calculate path derivatives, length"""
+
+        x,y,z = self.p[:,0],self.p[:,1],self.p[:,2]
+        tck,s = splprep([x,y,z],s=0)
+        ds = s[1]-s[0]
+        dx,dy,dz = splev(s,tck,der=1)
+        dr = np.sqrt(dx*dx + dy*dy + dz*dz)
+        dl = dr*ds
+        L = np.cumsum(dl)
+        T = np.array([dx/dr,dy/dr,dz/dr]).T
+
+        p,u = splprep([dx/dr,dy/dr,dz/dr],u=L,s=0)
+        dTx,dTy,dTz = splev(u,p,der=1)
+        kurv = np.sqrt(dTx*dTx + dTy*dTy + dTz*dTz)
+        kurv[kurv==0] = 1e-14
+        N = np.array([dTx/kurv,dTy/kurv,dTz/kurv]).T
+        R = 1./kurv
+
+        # return tangent vector, length, normal vector, radius of curvature
+        return T,L,dl,N,R
+
     def show(self,r0=1.):
-        mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=r0, color=(1,0,0))
+        if self.is_fixed:
+            cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
+        else:
+            cl = (1,0,0.) # red color for flux ropes
+        # 3D tube representation of path
+        mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
             
     def __repr__(self):
-        return "scalars {0}, fields {1}\n pos: {2}".format(self.scalars,self.fields,self.p)
+        T,L,dl,N,R = self.get_3D_curve_params()
+        return "initial length {0}\nCurrent length {1}\nMax Rcurv {2}\nMin Rcurv {3}".format(self.L_init,L,R.max(),R.min())
 
     def __len__(self):
         return len(self.m)
