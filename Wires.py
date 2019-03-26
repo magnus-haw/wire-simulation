@@ -7,6 +7,7 @@ import mayavi.mlab as mlab
 from scipy.interpolate import interp1d,splprep,splev
 
 from Utility import smooth
+import matplotlib.pyplot as plt
 
 class Wire(object):
     """
@@ -32,35 +33,76 @@ class Wire(object):
         """Initializes wire, p: array(n,3), v: array(n,3), m: array(n,1)"""
         sp,sv,sm = np.shape(p),np.shape(v),np.shape(m)
         
-        if sp[1] == 3 and sp[0] >= Wire._min_len and sv == sp and sm[0] == sp[0] and sm[1] ==1:
-            self.p = np.array(p) # position
-            self.v = np.array(v) # velocity
-            self.m = np.array(m) # mass
-            self.Bp = float(Bp)  # axial flux
-            self.I = float(I)    # current
-            self.r = float(r)    # wire minor radius
-            self.L_init = float(L_init)    # initial length
-            self.is_fixed = bool(is_fixed) # boolean for stationary wires
-            
-            self.params = dict(params)
-            self.ind = Wire.npaths
-            Wire.npaths += 1
-        else:
+        try:
+            if sp[1] == 3 and sp[0] >= Wire._min_len and sv == sp and sm[0] == sp[0] and sm[1] ==1:
+                self.p = np.array(p) # position
+                self.v = np.array(v) # velocity
+                self.m = np.array(m) # mass
+                self.Bp = float(Bp)  # axial flux
+                self.I = float(I)    # current
+                self.r = float(r)    # wire minor radius
+                self.L_init = float(L_init)    # initial length
+                self.is_fixed = bool(is_fixed) # boolean for stationary wires
+                
+                self.params = dict(params)
+                self.ind = Wire.npaths
+                Wire.npaths += 1
+        except:
             print(sp,sv,sm)
             print("Wire initialization error: incorrect shape of input arrays")
             sys.exit()
 
-    def interpolate(self):
-        # reinterpolate spline
-        length_param = np.cumsum(np.linalg.norm(np.diff(self.p,axis=0),axis=1))
-        length_param = np.append(0,length_param)
-        f = interp1d(length_param, self.p, kind='cubic',axis=0)
-        lp = np.linspace(0,length_param[-1],len(length_param))
-        self.p = f(lp)
+##    def interpolate(self):
+##        # reinterpolate spline
+##        length_param = np.cumsum(np.linalg.norm(np.diff(self.p,axis=0),axis=1))
+##        length_param = np.append(0,length_param)
+##        f = interp1d(length_param, self.p, kind='cubic',axis=0)
+##        lp = np.linspace(0,length_param[-1],len(length_param))
+##        self.p = f(lp)        
 
+    def interpolate(self,rfactor=10):
+        #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
+        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
+        new_s = []
+        new_mass = []
+        new_vel = []
+
+        # loops through intervals 
+        for i in range(0,len(self.p)):
+            new_s.append(s[i])
+            new_mass.append(self.m[i])
+            new_vel.append(self.v[i])
+
+            # adds new point if spacing interval larger than
+            #  some factor of the radius of curvature
+            if i < len(self.p)-1:
+                if dl[i] > R[i]/rfactor and dl[i]/2. > self.r:
+                    new_s.append((s[i]+s[i+1])/2.)
+                    new_mass.append(0.)
+                    new_vel.append(0.)
+                    
+        nn = len(new_s)
+
+        # interpolate positions
+        self.p = np.zeros((nn,3))
+        self.p[:,0],self.p[:,1],self.p[:,2] = splev(new_s,tck)
+
+        # interpolate mass and velocity (conserves mass/momentum)
+        self.m,self.v = np.zeros((nn,1)),np.zeros((nn,3))
+        for i in range(0,nn):
+            self.m[i] += new_mass[i]
+            self.v[i] = new_vel[i]
+            if new_mass[i] ==0:
+                self.v[i] = (new_mass[i-1]*new_vel[i-1] + new_mass[i+1]*new_vel[i+1])/(new_mass[i-1]+new_mass[i+1])
+                self.m[i] = (new_mass[i-1] + new_mass[i+1])/4.
+                
+                self.m[i-1] -= new_mass[i-1]/4. 
+                self.m[i+1] -= new_mass[i+1]/4.
+
+        #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
+        
     def get_3D_curve_params(self):
         """ Uses cubic splines to calculate path derivatives, length"""
-
         x,y,z = self.p[:,0],self.p[:,1],self.p[:,2]
         tck,s = splprep([x,y,z],s=0)
         ds = s[1]-s[0]
@@ -77,8 +119,8 @@ class Wire(object):
         N = np.array([dTx/kurv,dTy/kurv,dTz/kurv]).T
         R = 1./kurv
 
-        # return tangent vector, length, normal vector, radius of curvature
-        return T,L,dl,N,R
+        # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
+        return T,L,dl,N,R,tck,s
 
     def show(self,r0=1.):
         if self.is_fixed:
@@ -89,7 +131,7 @@ class Wire(object):
         mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
             
     def __repr__(self):
-        T,L,dl,N,R = self.get_3D_curve_params()
+        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
         return "initial length {0}\nCurrent length {1}\nMax Rcurv {2}\nMin Rcurv {3}".format(self.L_init,L,R.max(),R.min())
 
     def __len__(self):
@@ -148,7 +190,7 @@ class OctTreeNode:
         # Sum of particle mass
         self.total_mass = 0
 
-        # Center of mass multiplied by sum of particle massadd
+        # Center of mass multiplied by sum of particle mass add
         self.mass_weighted_positions = np.zeros(3)
 
         # If the region contains more than 1 particle, then it's recursively
@@ -260,3 +302,13 @@ class OctTreeNode:
             for child in self.children:
                 child.show()
                 
+
+
+if __name__ == "__main__":
+    n=10
+    L=1.
+    phi = np.linspace(0.,np.pi,n)
+    mass = np.ones((n,1))
+    path0 = np.array([np.cos(phi),np.sin(phi),0*phi]).T
+    w = Wire(path0,path0,mass,-1,is_fixed=False,r=.1)
+

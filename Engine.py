@@ -47,7 +47,7 @@ class SingleWireEngine(AbstractEngine):
         '''
         Calculates tension force from 3D curve properties
         '''
-        T,CumLen,dl,N,R = wire.get_3D_curve_params()
+        T,CumLen,dl,N,R,tck,s = wire.get_3D_curve_params()
         vol = pi*wire.r*wire.r*dl
         Lsq = CumLen[-1]**2
         ft = vol*(wire.Bp*wire.Bp/R)*((Lsq - wire.L_init**2)/Lsq)*N.T
@@ -125,7 +125,7 @@ class MultiWireEngine(AbstractEngine):
         '''
         Calculates tension force from 3D curve properties
         '''
-        T,CumLen,dl,N,R = wire.get_3D_curve_params()
+        T,CumLen,dl,N,R,tck,s = wire.get_3D_curve_params()
         vol = pi*wire.r*wire.r*dl
         Lsq = CumLen[-1]**2
         ft = vol*(wire.Bp*wire.Bp/R)*((Lsq - wire.L_init**2)/Lsq)*N.T

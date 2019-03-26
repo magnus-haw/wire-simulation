@@ -43,7 +43,7 @@ path[:,1] -= path[0,1]
 mass = np.ones((n,1))*dm
 ### Create wire 
 wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
-T,CumLen,dl,N,R = wr.get_3D_curve_params()
+T,CumLen,dl,N,R,tck,s = wr.get_3D_curve_params()
 wr.L0 = CumLen[-1]
 ##################################################
 
