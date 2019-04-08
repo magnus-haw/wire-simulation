@@ -163,7 +163,7 @@ class MultiWireEngine(AbstractEngine):
                 new_v = wire.v + F/wire.m* self.dt
                 new_m = wire.m.copy()
 
-                print(linalg.norm(new_v,axis=1).max()*self.dt)
+                #print(linalg.norm(new_v,axis=1).max()*self.dt)
 
                 ### Boundary conditions
                 # Fix first and final segments

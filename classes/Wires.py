@@ -76,7 +76,7 @@ class Wire(object):
             # adds new point if spacing interval larger than
             #  some factor of the radius of curvature
             if i < len(self.p)-1:
-                if dl[i] > R[i]/rfactor and dl[i]/2. > self.r:
+                if (dl[i] > R[i]/rfactor or dl[i] > 10*self.r) and dl[i]/2. > self.r:
                     new_s.append((s[i]+s[i+1])/2.)
                     new_mass.append(0.)
                     new_vel.append(0.)
@@ -100,12 +100,15 @@ class Wire(object):
                 self.m[i+1] -= new_mass[i+1]/4.
 
         #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
+        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
+        print(dl[1:-1].max())
         
     def get_3D_curve_params(self):
         """ Uses cubic splines to calculate path derivatives, length"""
         x,y,z = self.p[:,0],self.p[:,1],self.p[:,2]
         tck,s = splprep([x,y,z],s=0)
-        ds = s[1]-s[0]
+        ds = np.zeros(len(s))
+        ds[1:] = np.diff(s)
         dx,dy,dz = splev(s,tck,der=1)
         dr = np.sqrt(dx*dx + dy*dy + dz*dz)
         dl = dr*ds
@@ -122,13 +125,14 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
 
-    def show(self,r0=1.):
+    def show(self):
         if self.is_fixed:
             cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
         else:
             cl = (1,0,0.) # red color for flux ropes
         # 3D tube representation of path
-        mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
+        #mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
+        mlab.points3d(self.p[:,0], self.p[:,1], self.p[:,2], color=cl)
             
     def __repr__(self):
         T,L,dl,N,R,tck,s = self.get_3D_curve_params()

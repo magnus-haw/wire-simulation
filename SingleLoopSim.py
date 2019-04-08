@@ -1,5 +1,8 @@
 import numpy as np
 import mayavi.mlab as mlab
+import sys,os
+cwd = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(cwd + "/classes/")
 
 from Constants import mu0, pi, Kb,amu,mass_elec,elec
 from Engine import MultiWireEngine
@@ -17,7 +20,7 @@ B0 = I0*mu0/(2*pi*r0) #tesla
 vA0 = B0/np.sqrt(mu0*rho0)
 tau0 = L0/vA0 #s
 m0 = rho0*pi*r0*r0*L0
-n = 30
+n = 100
 
 print("L0 (m)", L0)
 print("B0 (T)", B0)
@@ -47,11 +50,10 @@ T,CumLen,dl,N,R,tck,s = wr.get_3D_curve_params()
 wr.L0 = CumLen[-1]
 ##################################################
 
-
-
+print(magnus)
 ################ Footpoint coils #################
 ### Initialize path
-phi = np.linspace(0.,2*pi,20)
+phi = np.linspace(0.,2*pi,50)
 path0 = np.array([(L/4)*np.cos(phi)-L,(L/4)*np.sin(phi),0*phi-1]).T
 path1 = np.array([(L/4)*np.cos(phi)+L,(L/4)*np.sin(phi),0*phi-1]).T
 ### Initialize mass
@@ -66,8 +68,8 @@ coil1 = Wire(path1,path1*0,mass,1,is_fixed=True,r=.1)
 ############### Create intial state ##############
 st = State('single_loop_test',load=0)
 st.items.append(wr)
-#st.items.append(coil0)
-#st.items.append(coil1)
+st.items.append(coil0)
+st.items.append(coil1)
 st.show()
 mlab.show()
 #st.save()
@@ -79,7 +81,7 @@ sim = MultiWireEngine(st,dt)
 for i in range(0,1000):
     new_st = sim.advance()
 
-    if i%100 == 0:
+    if i%10 == 0:
         new_st.show()
         mlab.show()
 ##################################################
