@@ -20,7 +20,7 @@ B0 = I0*mu0/(2*pi*r0) #tesla
 vA0 = B0/np.sqrt(mu0*rho0)
 tau0 = L0/vA0 #s
 m0 = rho0*pi*r0*r0*L0
-n = 100
+n = 11
 
 print("L0 (m)", L0)
 print("B0 (T)", B0)
@@ -46,11 +46,10 @@ path[:,1] -= path[0,1]
 mass = np.ones((n,1))*dm
 ### Create wire 
 wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
-T,CumLen,dl,N,R,tck,s = wr.get_3D_curve_params()
-wr.L0 = CumLen[-1]
 ##################################################
-
+print(path)
 print(magnus)
+
 ################ Footpoint coils #################
 ### Initialize path
 phi = np.linspace(0.,2*pi,50)
@@ -78,12 +77,15 @@ mlab.show()
 
 ############## Run simulation engine #############
 sim = MultiWireEngine(st,dt)
-for i in range(0,1000):
+for i in range(0,500):
     new_st = sim.advance()
 
     if i%10 == 0:
         new_st.show()
         mlab.show()
+        forces = sim.forceScheme()[0]
+        plt.plot(forces[:,0],forces[:,2])
+        plt.show()
 ##################################################
 
 

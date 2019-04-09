@@ -29,7 +29,7 @@ class Wire(object):
     npaths = 0
     _min_len = 5
     
-    def __init__(self,p,v,m,I,L_init=1.,r=1,Bp=1.,is_fixed=0,params={}):
+    def __init__(self,p,v,m,I,r=1,Bp=1.,is_fixed=0,params={}):
         """Initializes wire, p: array(n,3), v: array(n,3), m: array(n,1)"""
         sp,sv,sm = np.shape(p),np.shape(v),np.shape(m)
         
@@ -41,12 +41,14 @@ class Wire(object):
                 self.Bp = float(Bp)  # axial flux
                 self.I = float(I)    # current
                 self.r = float(r)    # wire minor radius
-                self.L_init = float(L_init)    # initial length
                 self.is_fixed = bool(is_fixed) # boolean for stationary wires
                 
                 self.params = dict(params)
                 self.ind = Wire.npaths
                 Wire.npaths += 1
+
+                T,CumLen,dl,N,R,tck,s = self.get_3D_curve_params()
+                self.L_init = CumLen[-1] # initial length
         except:
             print(sp,sv,sm)
             print("Wire initialization error: incorrect shape of input arrays")
@@ -76,7 +78,8 @@ class Wire(object):
             # adds new point if spacing interval larger than
             #  some factor of the radius of curvature
             if i < len(self.p)-1:
-                if (dl[i] > R[i]/rfactor or dl[i] > 10*self.r) and dl[i]/2. > self.r:
+                #dl[0] == 0 for integration purposes, hence index offset for dl array 
+                if (dl[i+1] > R[i]/rfactor or dl[i+1] > 10*self.r) and dl[i+1]/2. > self.r:
                     new_s.append((s[i]+s[i+1])/2.)
                     new_mass.append(0.)
                     new_vel.append(0.)
@@ -100,8 +103,8 @@ class Wire(object):
                 self.m[i+1] -= new_mass[i+1]/4.
 
         #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
-        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
-        print(dl[1:-1].max())
+##        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
+##        print(dl[1:-1].max())
         
     def get_3D_curve_params(self):
         """ Uses cubic splines to calculate path derivatives, length"""

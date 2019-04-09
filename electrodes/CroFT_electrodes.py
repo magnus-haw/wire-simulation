@@ -326,6 +326,7 @@ def show_plasma(posA,posB):
         tube.filter.vary_radius = 'vary_radius_by_scalar'
         mlab.pipeline.surface(tube, color=(1,0,0))
 
+
 def plot_all(plot_candelabra=True,plot_loops=False):
     '''Plot electrodes'''
 
