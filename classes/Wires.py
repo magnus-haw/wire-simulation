@@ -131,11 +131,17 @@ class Wire(object):
     def show(self):
         if self.is_fixed:
             cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
+            mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
         else:
             cl = (1,0,0.) # red color for flux ropes
-        # 3D tube representation of path
-        #mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
-        mlab.points3d(self.p[:,0], self.p[:,1], self.p[:,2], color=cl)
+            # 3D tube representation of path
+            #
+            #mlab.points3d(self.p[:,0], self.p[:,1], self.p[:,2], color=cl)
+
+            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
+            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
+            #tube.filter.vary_radius = 'vary_radius_by_scalar'
+            mlab.pipeline.surface(tube)
             
     def __repr__(self):
         T,L,dl,N,R,tck,s = self.get_3D_curve_params()

@@ -35,13 +35,14 @@ L = L0/r0
 dr = 1.
 dt = .02
 I = 1.
+B = 1.
 rho = 1.
 dm = pi*dr
 
 ################### Electrodes ###################
 apos,bpos = plot_electrodes(plot_candelabra=False, plot_loops=0)
-loop_A_lower_pos,loop_A_upper_pos =apos
-loop_B_lower_pos,loop_B_upper_pos =bpos
+loop_A_lower_pos,loop_A_upper_pos =apos[0]/L0,apos[1]/L0
+loop_B_lower_pos,loop_B_upper_pos =bpos[0]/L0,bpos[1]/L0
 
 ### Initialize paths
 phi = np.linspace(0.,pi,n)
@@ -62,24 +63,27 @@ path2 = np.array([p[:,0].A1, p[:,1].A1, R_0*np.sin(phi)]) # Circular
 ### Initialize mass
 mass = np.ones((n,1))*dm
 ### Create wire 
-wr_a = Wire(path1.T,path1.T*0,mass,I,r=.3,Bp=1)
-wr_b = Wire(path2.T,path2.T*0,mass,I,r=.3,Bp=1)
+wr_a = Wire(path1.T,path1.T*0,mass,I,r=.3,Bp=B)
+wr_b = Wire(path2.T,path2.T*0,mass,I,r=.3,Bp=B)
 ##################################################
 
 
-################## Footpoint coils #################
-##### Initialize path
-##phi = np.linspace(0.,2*pi,50)
-##path0 = np.array([(L/4)*np.cos(phi)-L,(L/4)*np.sin(phi),0*phi-1]).T
-##path1 = np.array([(L/4)*np.cos(phi)+L,(L/4)*np.sin(phi),0*phi-1]).T
-##### Initialize mass
-##mass = np.ones((len(path0),1))
-##### Create coils 
-##coil_a1 = Wire(path0,path0*0,mass,-1,is_fixed=True,r=.1)
-##coil_a2 = Wire(path1,path1*0,mass,1,is_fixed=True,r=.1)
-##coil_b1 = Wire(path0,path0*0,mass,-1,is_fixed=True,r=.1)
-##coil_b2 = Wire(path1,path1*0,mass,1,is_fixed=True,r=.1)
-####################################################
+################ Footpoint coils #################
+### Initialize path
+phi = np.linspace(0.,2*pi,50)
+mass = np.ones((len(phi),1))
+solenoids =[]
+for footpoint in [loop_A_lower_pos,loop_B_lower_pos]:
+    xpos, ypos = footpoint
+    path = np.array([(L/4)*np.cos(phi)+xpos,(L/4)*np.sin(phi)+ypos,0*phi-1]).T
+    coil = Wire(path,path*0,mass,-1,is_fixed=True,r=.1)
+    solenoids.append(coil)
+for footpoint in [loop_A_upper_pos,loop_B_upper_pos]:
+    xpos, ypos = footpoint
+    path = np.array([(L/4)*np.cos(phi)+xpos,(L/4)*np.sin(phi)+ypos,0*phi-1]).T
+    coil = Wire(path,path*0,mass,1,is_fixed=True,r=.1)
+    solenoids.append(coil)
+##################################################
 
 
 
@@ -87,10 +91,8 @@ wr_b = Wire(path2.T,path2.T*0,mass,I,r=.3,Bp=1)
 st = State('double_loop_test',load=0)
 st.items.append(wr_a)
 st.items.append(wr_b)
-##st.items.append(coil_a1)
-##st.items.append(coil_a2)
-##st.items.append(coil_b1)
-##st.items.append(coil_b2)
+for sol in solenoids:
+    st.items.append(sol)
 st.show()
 mlab.show()
 #st.save()
@@ -102,11 +104,11 @@ sim = MultiWireEngine(st,dt)
 for i in range(0,500):
     new_st = sim.advance()
 
-    if i%10 == 0:
+    if i%50 == 0:
         new_st.show()
         mlab.show()
         forces = sim.forceScheme()[0]
-        plt.plot(forces[:,0],forces[:,2])
+        plt.plot(forces[:,1],forces[:,2])
         plt.show()
 ##################################################
 
@@ -115,12 +117,12 @@ for i in range(0,500):
 plt.figure(0)
 plt.title("forces")
 forces = sim.forceScheme()[0]
-plt.plot(forces[:,0],forces[:,2])
+plt.plot(forces[:,1],forces[:,2])
 
 plt.figure(1)
 plt.title("position")
 wire = sim.state.items[0]
-plt.plot(wire.p[:,0],wire.p[:,2],'bo')
+plt.plot(wire.p[:,1],wire.p[:,2],'bo')
 plt.show()
 
 ##new_st.show()
