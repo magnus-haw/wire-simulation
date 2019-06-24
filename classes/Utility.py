@@ -1,8 +1,9 @@
 ### Utility functions
 from numpy import array,zeros,gradient as grad,linalg,cross
-from numpy import newaxis,shape,sqrt
+from numpy import newaxis,shape,sqrt,pi
 from scipy.interpolate import splprep,splev,splrep
 import numpy as np
+mu0 = (4e-7)*pi
 
 def biot_savart(p, I, path, delta=.01):
     '''Given a point, a current and its path, calculates the magnetic field at that point
@@ -10,7 +11,6 @@ def biot_savart(p, I, path, delta=.01):
         e.g. positions are normalized by a radial length scale r~(r'/L0)
              current is normalized to a characteristic value I~(I'/I0)
              Bfield is normalized to B~(B'/B0)
-        These non-dimensional scalings are defined in Dimensions.py
     '''
     dl = grad(path, axis=0)
     r = path-p
@@ -19,6 +19,22 @@ def biot_savart(p, I, path, delta=.01):
 
     B = sum(np.cross(r,dl) / (rmag**3.)[:,newaxis])
     B *= I/2.
+    return B
+
+def biot_savart_SI(p, I, path, delta=.01):
+    '''Given a point, a current and its path, calculates the magnetic field at that point
+       This function uses SI units:
+        e.g. positions are in units of meters (m)
+             current is in units of amps (A)
+             Bfield is in units of teslas (T)
+    '''
+    dl = grad(path, axis=0)
+    r = path-p
+    rmag = linalg.norm(r, axis=1)
+    rmag[rmag<= delta] = 1e6
+
+    B = sum(np.cross(r,dl) / (rmag**3.)[:,newaxis])
+    B *= I*mu0/(4*pi)
     return B
 
 def getBField(path, coil_paths, currents, delta=.01):
@@ -33,6 +49,17 @@ def getBField(path, coil_paths, currents, delta=.01):
             B[p,:] += biot_savart(path[p], currents[c], coil_paths[c],delta=delta)
     return B
 
+def getBField_SI(path, coil_paths, currents, delta=.01):
+    '''
+    Given the path of the loop, a list of coil paths (current paths), and
+    a list of current magnitudes, returns B field at points along path
+    '''
+    n = len(path)
+    B = zeros((n, 3))
+    for p in range(n):
+        for c in range(len(coil_paths)):
+            B[p,:] += biot_savart_SI(path[p], currents[c], coil_paths[c],delta=delta)
+    return B
 
 def JxB_force(path,I,B):
     '''
