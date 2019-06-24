@@ -23,7 +23,7 @@ B0 = I0*mu0/(2*pi*r0) #tesla
 vA0 = B0/np.sqrt(mu0*rho0)
 tau0 = L0/vA0 #s
 m0 = rho0*pi*r0*r0*L0
-n = 250
+n = 1000
 
 print("L0 (m)", L0)
 print("B0 (T)", B0)
@@ -86,7 +86,7 @@ def closest(position, path):
 
 ################ Single loop wire ################
 ### Initialize path
-phi = np.linspace(0.,12*pi,n) + 0.5
+phi = np.linspace(0.,36*pi,n) + 0.5
 path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
 path[:,1] -= path[0,1]
 ### Initialize mass
@@ -112,7 +112,7 @@ myB3 = []
 myB4 = []
 time = range(0, 100)
 for j in time:
-    phi = np.linspace(0.,12*pi,n) + np.pi*j/50.
+    phi = np.linspace(0.,36*pi,n) + np.pi*j/50.
     path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
     path[:,1] -= path[0,1]
     wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
@@ -129,29 +129,81 @@ for j in time:
     myB4.append(mag(B4))
 #Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
 plt.figure(1)
-plt.plot(time, myB, 'ro', time, myB1, 'bo', time, myB2, 'go', time, myB3, 'yo', time, myB4, 'mo')
+plt.plot(time, myB, 'ro', label="(x, 0, 0)")
+plt.plot(time, myB1, 'bo', label="(0, 0, z)")
+plt.plot(time, myB2, 'go', label="(-x, 0, 0)")
+plt.plot(time, myB3, 'yo', label="(0, 0, -z)")
+plt.plot(time, myB4, 'mo', label="(x, y, 0)")
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
+plt.legend()
 plt.title('B Field vs. Time (*lambda = pi*(1.2))')
 
 myB_a = []
 myB1_a = []
+myB2_a = []
+myB3_a = []
 for i in time:
-    phi1 = np.linspace(0.,12*pi,n) + np.pi*j/50.
+    phi1 = np.linspace(0.,36*pi,n) + np.pi*i/50.
     path1 = np.array([L*np.cos(phi1),5*phi1,L*np.sin(phi1)]).T
     path1[:,1] -= path1[0,1]
-    wr = Wire(path1,path1*0,mass,I,r=.3,Bp=1)
+    wr1 = Wire(path1,path1*0,mass,I,r=.3,Bp=1)
+
+    phi2 = np.linspace(0.,36*pi,n) + np.pi*i/50.
+    path2 = np.array([L*np.cos(phi2),phi2,L*np.sin(phi2)]).T
+    path2[:,1] -= path2[0,1]
+    wr2 = Wire(path2,path2*0,mass,I,r=.3,Bp=1)
+
+    phi3 = np.linspace(0.,36*pi,n) + np.pi*i/50.
+    path3 = np.array([L*np.cos(phi3),phi3/2,L*np.sin(phi3)]).T
+    path3[:,1] -= path3[0,1]
+    wr3 = Wire(path3,path3*0,mass,I,r=.3,Bp=1)
 
     B_a = biot_savart(probes[0], I, wr.p, delta = 0.1)
-    B1_a = biot_savart(probes[1], I, wr.p, delta = 0.1)
+    B1_a = biot_savart(probes[0], I, wr1.p, delta = 0.1)
+    B2_a = biot_savart(probes[0], I, wr2.p, delta = 0.1)
+    B3_a = biot_savart(probes[0], I, wr3.p, delta = 0.1)
     myB_a.append(mag(B_a))
     myB1_a.append(mag(B1_a))
+    myB2_a.append(mag(B2_a))
+    myB3_a.append(mag(B3_a))
 #Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
 plt.figure(2)
-plt.plot(time, myB, 'ro', time, myB1, 'bo')
+plt.plot(time, myB, 'ro', label="lambda")
+plt.plot(time, myB1, 'bo', label="lambda/3")
+plt.plot(time, myB2, 'go', label="lambda/15")
+plt.plot(time, myB3, 'mo', label="lambda/30")
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
 plt.title('B Field vs. Time (*lambda = pi*(0.4))')
+plt.legend()
+
+myB_bx = []
+myB_by = []
+myB_bz = []
+for k in time:
+    phi = np.linspace(0.,36*pi,n) + np.pi*k/50.
+    path = np.array([L*np.cos(phi),5*phi,L*np.sin(phi)]).T
+    path[:,1] -= path[0,1]
+    wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
+
+    B_b = biot_savart(probes[0], I, wr.p, delta = 0.1)
+    x_comp = B_b[0]
+    y_comp = B_b[1]
+    z_comp = B_b[2]
+    myB_bx.append(x_comp)
+    myB_by.append(y_comp)
+    myB_bz.append(z_comp)
+#Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
+plt.figure(3)
+plt.plot(time, myB_bx, 'ro', label = 'x component')
+plt.plot(time, myB_by, 'bo', label = 'y component')
+plt.plot(time, myB_bz, 'go', label = 'z component')
+plt.ylabel('Magnitude of Magnetic Field [T]')
+plt.xlabel('Time')
+plt.title('B Field vs. Time')
+plt.legend()
+plt.show()
 
 #for i in range(len(probes)):
     #B = biot_savart(probes[i], I, wr.p, delta = 0.1)
@@ -175,69 +227,71 @@ plt.title('B Field vs. Time (*lambda = pi*(0.4))')
     #print('Coordinate ' + str(i + count + 2) + ': ' + str(B1) + ', MAG = ' + str(mag(B1)) + ', PHI = ' + str(mag_phi(B1)) + ', THETA = ' + str(mag_theta(B1)))
     #rint('Coordinate ' + str(i + count + 3) + ': ' + str(B2) + ', MAG = ' + str(mag(B2)) + ', PHI = ' + str(mag_phi(B2)) + ', THETA = ' + str(mag_theta(B2)))
     #count = count + 1
-mlab.points3d(probes.T[0], probes.T[1], probes.T[2])
-mlab.points3d(probes0.T[0], probes0.T[1], probes0.T[2])
-mlab.points3d(probes1.T[0], probes1.T[1], probes1.T[2])
-mlab.points3d(probes2.T[0], probes2.T[1], probes2.T[2])
-wr.show()
+#mlab.points3d(probes0.T[0], probes0.T[1], probes0.T[2])
+#mlab.points3d(probes1.T[0], probes1.T[1], probes1.T[2])
+#mlab.points3d(probes2.T[0], probes2.T[1], probes2.T[2])
+#wr.show()
+
+mlab.points3d(myB_bx, myB_by, myB_bz)
+mlab.axes(x_axis_visibility=True, y_axis_visibility=True, z_axis_visibility=True)
 mlab.show()
+
 #plt.plot(Dlist, Blist, 'ro')
 #plt.ylabel('Magnitude of Magnetic Field [T]')
 #plt.xlabel('Closest Distance from Wire [m]')
 #plt.title('B Field vs. Distance (lambda = pi*(1.2))')
-plt.show()
 
-################ Footpoint coils #################
-### Initialize path
-phi = np.linspace(0.,2*pi,50)
-path0 = np.array([(L/4)*np.cos(phi)-L,(L/4)*np.sin(phi),0*phi-1]).T
-path1 = np.array([(L/4)*np.cos(phi)+L,(L/4)*np.sin(phi),0*phi-1]).T
-### Initialize mass
-mass = np.ones((len(path0),1))
-### Create coils
-coil0 = Wire(path0,path0*0,mass,-1,is_fixed=True,r=.1)
-coil1 = Wire(path1,path1*0,mass,1,is_fixed=True,r=.1)
-##################################################
-
+# ################ Footpoint coils #################
+# ### Initialize path
+# phi = np.linspace(0.,2*pi,50)
+# path0 = np.array([(L/4)*np.cos(phi)-L,(L/4)*np.sin(phi),0*phi-1]).T
+# path1 = np.array([(L/4)*np.cos(phi)+L,(L/4)*np.sin(phi),0*phi-1]).T
+# ### Initialize mass
+# mass = np.ones((len(path0),1))
+# ### Create coils
+# coil0 = Wire(path0,path0*0,mass,-1,is_fixed=True,r=.1)
+# coil1 = Wire(path1,path1*0,mass,1,is_fixed=True,r=.1)
+# ##################################################
 
 
-############### Create intial state ##############
-st = State('single_loop_test',load=0)
-st.items.append(wr)
-st.items.append(coil0)
-st.items.append(coil1)
-#st.show()
-#mlab.show()
-#st.save()
-##################################################
 
-
-############## Run simulation engine #############
-#sim = MultiWireEngine(st,dt)
-#for i in range(0,500):
-    #new_st = sim.advance()
-
-    #if i%10 == 0:
-        #new_st.show()
-        #mlab.show()
-        #forces = sim.forceScheme()[0]
-        #plt.plot(forces[:,0],forces[:,2])
-        #plt.show()
-##################################################
-
-
-################# Plot Results ###################
-plt.figure(0)
-plt.title("forces")
-forces = sim.forceScheme()[0]
-plt.plot(forces[:,0],forces[:,2])
-
-plt.figure(1)
-plt.title("position")
-wire = sim.state.items[0]
-plt.plot(wire.p[:,0],wire.p[:,2],'bo')
-plt.show()
-
-#new_st.show()
-mlab.show()
-##################################################
+# ############### Create intial state ##############
+# st = State('single_loop_test',load=0)
+# st.items.append(wr)
+# st.items.append(coil0)
+# st.items.append(coil1)
+# #st.show()
+# #mlab.show()
+# #st.save()
+# ##################################################
+#
+#
+# ############## Run simulation engine #############
+# #sim = MultiWireEngine(st,dt)
+# #for i in range(0,500):
+#     #new_st = sim.advance()
+#
+#     #if i%10 == 0:
+#         #new_st.show()
+#         #mlab.show()
+#         #forces = sim.forceScheme()[0]
+#         #plt.plot(forces[:,0],forces[:,2])
+#         #plt.show()
+# ##################################################
+#
+#
+# ################# Plot Results ###################
+# plt.figure(0)
+# plt.title("forces")
+# forces = sim.forceScheme()[0]
+# plt.plot(forces[:,0],forces[:,2])
+#
+# plt.figure(1)
+# plt.title("position")
+# wire = sim.state.items[0]
+# plt.plot(wire.p[:,0],wire.p[:,2],'bo')
+# plt.show()
+#
+# #new_st.show()
+# mlab.show()
+# ##################################################
