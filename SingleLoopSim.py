@@ -1,3 +1,5 @@
+#NOTE: Max angle project begins at line 228
+
 import numpy as np
 import math
 import mayavi.mlab as mlab
@@ -40,7 +42,9 @@ I = 1.
 rho = 1.
 dm = pi*dr
 
-######## Magnitude and Anuglar Components #########
+###### General functions ######
+
+# Calculate the magnitude of magnetic field w/ its components
 def mag(components):
     x = components[0]
     y = components[1]
@@ -48,6 +52,7 @@ def mag(components):
     magnitude = ((x**2) + (y**2) + (z**2))**(0.5)
     return magnitude
 
+# Calculate the magnetic field's angle phi
 def mag_phi(components):
     x = components[0]
     y = components[1]
@@ -55,27 +60,53 @@ def mag_phi(components):
     adj = ((x**2) + (y**2))**(0.5)
     phi = np.arctan(z/adj)
     return phi
-
+# Calculate the magnetic field's angle theta
 def mag_theta(components):
     x = components[0]
     y = components[1]
     theta = np.arctan(y/x)
     return theta
 
+# returns a dictionary of all the angles of the magnetic field based on the position
+def angleDict(B_array, coordinate):
+    ang_dict = {}
+    if coordinate[0] == 0:
+        for i in range(len(B_array)):
+            angle = mag_phi(B_array[i])
+            ang_dict.update({B_array[i] : angle})
+    if coordinate[2] == 0:
+        for i in range(len(B_array)):
+            angle = mag_theta(B_array[i])
+            #print(angle)
+            #print(B_array[i][0])
+            ang_dict.update({tuple(B_array[i]) : angle})
+    #print(ang_dict)
+    return ang_dict
+
+# returns the max angle of the magnetic field
+def maxAngle(B_array, coordinate):
+    ang_dict = angleDict(B_array, coordinate)
+    max = list(ang_dict.values())[0]
+    for i in ang_dict.values():
+        if i >max:
+            max = i
+    B = list(ang_dict.keys())[list(ang_dict.values()).index(max)]
+    #print('The max angle is ' + str(max) + ' at the magnetic vector ' + str(B))
+    return [B, max];
+
+# Calculate and produce a dictionary w/ the probe's distance from each path point
 def distance(position, path):
     x = position[0]
     y = position[1]
     z = position[2]
     path_list = path.tolist()
-    #print(path_list)
     dist_dict = {}
     for i in range(len(path_list)):
-        #for j in range(3):
-            #print(path_list[i][j])
         dist = math.sqrt((path_list[i][0] - x)**2 + (path_list[i][1] - y)**2 + (path_list[i][2] - z)**2)
         dist_dict.update({tuple(path_list[i]) : dist})
     return dist_dict
 
+# Finds the closest distance from the dictionary of all distances
 def closest(position, path):
     dist_dict = distance(position, path)
     min = list(dist_dict.values())[0]
@@ -85,6 +116,7 @@ def closest(position, path):
     return min
 
 ################ Single loop wire ################
+#L = 8*L
 ### Initialize path
 phi = np.linspace(0.,36*pi,n) + 0.5
 path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
@@ -92,154 +124,184 @@ path[:,1] -= path[0,1]
 ### Initialize mass
 mass = np.ones((n,1))*dm
 ### Create wire
-wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
+wr = Wire(path,path*0,mass,I,r=0.3,Bp=1)
+wr.show()
+mlab.show()
 ##################################################
 lmda = 15*2*pi
 rad = 4.67
-#print(L/lmda)
+time = range(0, 100)
+
+# Create a series of points
 probes = np.array([[rad*L, lmda*2 , 0], [0, lmda*2 , rad*L], [-rad*L, lmda*2, 0]])
 probes0 = np.array([[0, lmda*2 , -L*rad], [rad*L, lmda*2.33 , 0], [0, lmda*3, rad*L]])
 probes1 = np.array([[-rad*L, lmda*3 , 0], [0, lmda*3, -rad*L], [rad*L, lmda*4, 0]])
 probes2 = np.array([[0, lmda*4, rad*L], [-rad*L, lmda*4, 0], [0, lmda*4, -rad*L]])
-count = 1
-Blist = []
-Dlist = []
 
-myB = []
-myB1 = []
-myB2 = []
-myB3 = []
-myB4 = []
-time = range(0, 100)
+# magnitude of magnetic field of five probes in a time-series
+B_mag = []
+B_mag1 = []
+B_mag2 = []
+B_mag3 = []
+B_mag4 = []
+
+# Create a time series with wavelength:
 for j in time:
     phi = np.linspace(0.,36*pi,n) + np.pi*j/50.
     path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
     path[:,1] -= path[0,1]
     wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
 
+    # Calculate the magnetic field at each instance
     B = biot_savart(probes[0], I, wr.p, delta = 0.1)
     B1 = biot_savart(probes[1], I, wr.p, delta = 0.1)
     B2 = biot_savart(probes[2], I, wr.p, delta = 0.1)
     B3 = biot_savart(probes0[0], I, wr.p, delta = 0.1)
     B4 = biot_savart(probes0[1], I, wr.p, delta = 0.1)
-    myB.append(mag(B))
-    myB1.append(mag(B1))
-    myB2.append(mag(B2))
-    myB3.append(mag(B3))
-    myB4.append(mag(B4))
-#Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
+    B_mag.append(mag(B))
+    B_mag1.append(mag(B1))
+    B_mag2.append(mag(B2))
+    B_mag3.append(mag(B3))
+    B_mag4.append(mag(B4))
+
 plt.figure(1)
-plt.plot(time, myB, 'ro', label="(x, 0, 0)")
-plt.plot(time, myB1, 'bo', label="(0, 0, z)")
-plt.plot(time, myB2, 'go', label="(-x, 0, 0)")
-plt.plot(time, myB3, 'yo', label="(0, 0, -z)")
-plt.plot(time, myB4, 'mo', label="(x, y, 0)")
+plt.plot(time, B_mag, 'ro', label="(x, 0, 0)")
+plt.plot(time, B_mag1, 'bo', label="(0, 0, z)")
+plt.plot(time, B_mag2, 'go', label="(-x, 0, 0)")
+plt.plot(time, B_mag3, 'yo', label="(0, 0, -z)")
+plt.plot(time, B_mag4, 'mo', label="(x, y, 0)")
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
 plt.legend()
-plt.title('B Field vs. Time (*lambda = pi*(1.2))')
+plt.title('B Field vs. Time')
 
-myB_a = []
-myB1_a = []
-myB2_a = []
-myB3_a = []
+# varying the wavelength of the helix and plotting the magnitude of the magnetic field
+B1_lam = []
+B2_lam = []
+B3_lam = []
+B4_lam = []
+
+# Producing a time series for four different wavelengths
 for i in time:
+    # wavelength:
+    phi = np.linspace(0.,36*pi,n) + np.pi*i/50.
+    path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
+    path[:,1] -= path[0,1]
+    wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
+
+    # wavelength:
     phi1 = np.linspace(0.,36*pi,n) + np.pi*i/50.
     path1 = np.array([L*np.cos(phi1),5*phi1,L*np.sin(phi1)]).T
     path1[:,1] -= path1[0,1]
     wr1 = Wire(path1,path1*0,mass,I,r=.3,Bp=1)
 
+    # wavelength:
     phi2 = np.linspace(0.,36*pi,n) + np.pi*i/50.
     path2 = np.array([L*np.cos(phi2),phi2,L*np.sin(phi2)]).T
     path2[:,1] -= path2[0,1]
     wr2 = Wire(path2,path2*0,mass,I,r=.3,Bp=1)
 
+    # wavelength:
     phi3 = np.linspace(0.,36*pi,n) + np.pi*i/50.
     path3 = np.array([L*np.cos(phi3),phi3/2,L*np.sin(phi3)]).T
     path3[:,1] -= path3[0,1]
     wr3 = Wire(path3,path3*0,mass,I,r=.3,Bp=1)
 
-    B_a = biot_savart(probes[0], I, wr.p, delta = 0.1)
-    B1_a = biot_savart(probes[0], I, wr1.p, delta = 0.1)
-    B2_a = biot_savart(probes[0], I, wr2.p, delta = 0.1)
-    B3_a = biot_savart(probes[0], I, wr3.p, delta = 0.1)
-    myB_a.append(mag(B_a))
-    myB1_a.append(mag(B1_a))
-    myB2_a.append(mag(B2_a))
-    myB3_a.append(mag(B3_a))
-#Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
+    # Calculate the magnetic field at each instance
+    B = biot_savart(probes[0], I, wr.p, delta = 0.1)
+    B1 = biot_savart(probes[0], I, wr1.p, delta = 0.1)
+    B2 = biot_savart(probes[0], I, wr2.p, delta = 0.1)
+    B3 = biot_savart(probes[0], I, wr3.p, delta = 0.1)
+    B1_lam.append(mag(B))
+    B2_lam.append(mag(B1))
+    B3_lam.append(mag(B2))
+    B4_lam.append(mag(B3))
+
 plt.figure(2)
-plt.plot(time, myB, 'ro', label="lambda")
-plt.plot(time, myB1, 'bo', label="lambda/3")
-plt.plot(time, myB2, 'go', label="lambda/15")
-plt.plot(time, myB3, 'mo', label="lambda/30")
+plt.plot(time, B1_lam, 'ro', label="lambda")
+plt.plot(time, B2_lam, 'bo', label="lambda/3")
+plt.plot(time, B3_lam, 'go', label="lambda/15")
+plt.plot(time, B4_lam, 'mo', label="lambda/30")
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
-plt.title('B Field vs. Time (*lambda = pi*(0.4))')
+plt.title('B Field vs. Time')
 plt.legend()
 
-myB_bx = []
-myB_by = []
-myB_bz = []
+################# Max Angle Analysis ##########################
+B_array = []
+
+# Producing a time series at wavelength:
+for l in time:
+    phi = np.linspace(0.,36*pi,n) + np.pi*l/50.
+    path = np.array([L*np.cos(phi),5*phi,L*np.sin(phi)]).T
+    path[:,1] -= path[0,1]
+    wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
+
+    # Calculate magnetic field and its components
+    B = biot_savart(probes[0], I, wr.p, delta = 0.1)
+    B_array.append(B)
+
+max_angle = maxAngle(B_array, probes[0])
+
+# Calculating the magnitude of each vector and indexing the instance of max angle
+B_array_mag = []
+t = 0.
+B_max_angle_mag = 0.
+for m in B_array:
+    if mag(m) == mag(max_angle[0]):
+        t = B_array.index(m)
+        B_max_angle_mag = mag(m)
+    B_array_mag.append(mag(m))
+
+fig = plt.figure(3)
+ax = fig.add_subplot(111)
+plt.plot(time, B_array_mag, 'ro', label = 'Magnetic Field')
+plt.ylabel('Magnitude of Magnetic Field [T]')
+plt.xlabel('Time')
+plt.title('B Field vs. Time')
+string = 'max angle = ' + str(max_angle[1]) + ' rad'
+ax.annotate(string, xy = (t, B_max_angle_mag))
+plt.legend()
+plt.show()
+#########################################################################
+
+# plotting the components of the magnetic field at one probe in a time series
+Bx = []
+By = []
+Bz = []
+
+# Producing a time series at wavelength:
 for k in time:
     phi = np.linspace(0.,36*pi,n) + np.pi*k/50.
     path = np.array([L*np.cos(phi),5*phi,L*np.sin(phi)]).T
     path[:,1] -= path[0,1]
     wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
 
-    B_b = biot_savart(probes[0], I, wr.p, delta = 0.1)
-    x_comp = B_b[0]
-    y_comp = B_b[1]
-    z_comp = B_b[2]
-    myB_bx.append(x_comp)
-    myB_by.append(y_comp)
-    myB_bz.append(z_comp)
-#Red is (x, 0, 0), blue is (0, 0, z), green is (-x, 0, 0), yellow is (0, 0, -z), and purple is (x, y, 0)
-plt.figure(3)
-plt.plot(time, myB_bx, 'ro', label = 'x component')
-plt.plot(time, myB_by, 'bo', label = 'y component')
-plt.plot(time, myB_bz, 'go', label = 'z component')
+    # Calculate magnetic field and its components
+    B = biot_savart(probes[0], I, wr.p, delta = 0.1)
+    x = B[0]
+    y = B[1]
+    z = B[2]
+    Bx.append(x)
+    By.append(y)
+    Bz.append(z)
+
+plt.figure(4)
+plt.plot(time, Bx, 'ro', label = 'x-component')
+plt.plot(time, By, 'bo', label = 'y-component')
+plt.plot(time, Bz, 'go', label = 'z-component')
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
 plt.title('B Field vs. Time')
 plt.legend()
 plt.show()
 
-#for i in range(len(probes)):
-    #B = biot_savart(probes[i], I, wr.p, delta = 0.1)
-    #B0 = biot_savart(probes0[i], I, wr.p, delta = 0.1)
-    #B1 = biot_savart(probes1[i], I, wr.p, delta = 0.1)
-    #B2 = biot_savart(probes2[i], I, wr.p, delta = 0.1)
-    #d = closest(probes[i], path)
-    #d0 = closest(probes0[i], path)
-    #d1 = closest(probes1[i], path)
-    #d2 = closest(probes2[i], path)
-    #Blist.append(mag(B))
-    #Blist.append(mag(B0))
-    #Blist.append(mag(B1))
-    #Blist.append(mag(B2))
-    #Dlist.append(d)
-    #Dlist.append(d0)
-    #Dlist.append(d1)
-    #Dlist.append(d2)
-    #print('Coordinate ' + str(i + count) + ': ' + str(B) + ', MAG = ' + str(mag(B)) + ', PHI = ' + str(mag_phi(B)) + ', THETA = ' + str(mag_theta(B)))
-    #print('Coordinate ' + str(i + count + 1) + ': ' + str(B0) + ', MAG = ' + str(mag(B0)) + ', PHI = ' + str(mag_phi(B0)) + ', THETA = ' + str(mag_theta(B0)))
-    #print('Coordinate ' + str(i + count + 2) + ': ' + str(B1) + ', MAG = ' + str(mag(B1)) + ', PHI = ' + str(mag_phi(B1)) + ', THETA = ' + str(mag_theta(B1)))
-    #rint('Coordinate ' + str(i + count + 3) + ': ' + str(B2) + ', MAG = ' + str(mag(B2)) + ', PHI = ' + str(mag_phi(B2)) + ', THETA = ' + str(mag_theta(B2)))
-    #count = count + 1
-#mlab.points3d(probes0.T[0], probes0.T[1], probes0.T[2])
-#mlab.points3d(probes1.T[0], probes1.T[1], probes1.T[2])
-#mlab.points3d(probes2.T[0], probes2.T[1], probes2.T[2])
-#wr.show()
-
-mlab.points3d(myB_bx, myB_by, myB_bz)
-mlab.axes(x_axis_visibility=True, y_axis_visibility=True, z_axis_visibility=True)
+## plotting the time series of the vector of the magnetic field
+mlab.points3d(Bx, By, Bz)
+mlab.points3d(0., 0., 0., name = 'Origin', color = (1., 0., 0.), scale_factor = 0.001)
+mlab.title('Magnetic Field Vector at Probe')
+mlab.axes(ranges = [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5], x_axis_visibility=True, y_axis_visibility=True, z_axis_visibility=True)
 mlab.show()
-
-#plt.plot(Dlist, Blist, 'ro')
-#plt.ylabel('Magnitude of Magnetic Field [T]')
-#plt.xlabel('Closest Distance from Wire [m]')
-#plt.title('B Field vs. Distance (lambda = pi*(1.2))')
 
 # ################ Footpoint coils #################
 # ### Initialize path
