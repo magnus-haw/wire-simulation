@@ -12,6 +12,8 @@ from Wires import Wire,State
 from Utility import biot_savart
 
 import matplotlib.pyplot as plt
+from shapely.geometry import Polygon
+from TimeSeriesSim import timeSeries
 
 ### Dimensional scales
 r0 = 0.01 #m
@@ -39,7 +41,7 @@ dt = .02
 I = 1.
 rho = 1.
 dm = pi*dr
-ncl = 9 # number of colors for contours
+ncl = 251 # number of colors for contours
 
 ###### General functions ######
 
@@ -128,6 +130,8 @@ def getContourVerts(contour, cl_nm):
 
     for cc in contour.collections:
         paths = []
+        if cl_nm > (len(colorArray) - 1):
+            cl_nm = (len(colorArray) - 1)
         if compareColors(colorArray[cl_nm], getColor(cc), True):
             for pp in cc.get_paths():
                 xy = []
@@ -170,140 +174,214 @@ def getMinMax(nested_array):
             min_y = array[i][1]
         if array[i][1] > max_y:
             max_y = array[i][1]
-    print([min_x, max_x, min_y, max_y])
     return [min_x, max_x, min_y, max_y]
 
-def getCenter(nested_array):
-    MinMaxArray = getMinMax(nested_array)
-    avg_x = (MinMaxArray[0] + MinMaxArray[1])/2
-    avg_y = (MinMaxArray[2] + MinMaxArray[3])/2
-    return [avg_x, avg_y]
-
 def colorNumber(value, boundaries):
-    color_num = 0
+    #print(boundaries)
     for i in range(len(boundaries)):
-        if value > boundaries[i] or value < boundaries[i + 1]:
-            return color_num
+        if i == (len(boundaries) - 1):
+            return i
+        if value < boundaries[i + 1]:
+            return i
 
 def getShapes(value, contour, colorBar):
     cl_nm = colorNumber(value, colorBar.boundaries)
     return getContourVerts(contour, cl_nm)
 
-################ Single loop wire ################
-### Initialize path
-phi = np.linspace(0.,36*pi,n) + 0.5
-path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
-path[:,1] -= path[0,1]
-### Initialize mass
-mass = np.ones((n,1))*dm
-### Create wire
-wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
-##################################################
-# Initialize length of grid arrays
-lmda = 15*2*pi
-rad = 4.67
-lmda_scl = range(1, 11) #NOTE: both ranges must be the same size
-L_scl = range(1, 11)
+def arrayConvert(shapeArray):
+    array = shapeArray[0][0]
+    poly_array = []
+    for i in array:
+        x = i[0]
+        y = i[1]
+        poly_array.append((x,y))
+    return poly_array
 
-# Create a series of points NOTE: probes[0] and probes[1] were moved to exactly the middle
-probes = np.array([[rad*L, lmda*9 , 0], [0, lmda*9 , rad*L], [-rad*L, lmda*2, 0]])
-probes0 = np.array([[0, lmda*2 , -L*rad], [rad*L, lmda*2.33 , 0], [0, lmda*3, rad*L]])
-probes1 = np.array([[-rad*L, lmda*3 , 0], [0, lmda*3, -rad*L], [rad*L, lmda*4, 0]])
-probes2 = np.array([[0, lmda*4, rad*L], [-rad*L, lmda*4, 0], [0, lmda*4, -rad*L]])
+def meanCentroid(shape_array1, shape_array2, shape_array3 = None):
+    shape1 = arrayConvert(shape_array1)
+    shape2 = arrayConvert(shape_array2)
+    poly1 = Polygon(shape1)
+    poly2 = Polygon(shape2)
+    center1 = poly1.centroid.coords
+    center2 = poly2.centroid.coords
+    if not (shape_array3 == None):
+        shape3 = arrayConvert(shape_array3)
+        poly3 = Polygon(shape3)
+        center3 = poly3.centroid.coords
+        mean_x = (center1[0][0] + center2[0][0] + center3[0][0])/3.
+        mean_y = (center1[0][1] + center2[0][1] + center3[0][1])/3.
+        return [mean_x, mean_y]
+    mean_x = (center1[0][0] + center2[0][0])/2.
+    mean_y = (center1[0][1] + center2[0][1])/2.
+    return [mean_x, mean_y]
 
-# Initialize the grid arrays for the contour
-lambda_array = []
-radius_array = []
-B_array = []
-angleCol_array = []
-angleCross_array = []
-B_array1 = []
-angleCol_array1 = []
-angleCross_array1 = []
+def modelLambdaRadius(B_array, AngleCol_array, AngleCross_array, lmbda, radius):
+    cntr_array = twoDimContour(31, 31)
+    #Col
+    CS = cntr_array[0]
+    CB = cntr_array[1]
+    #Cross
+    ES = cntr_array[2]
+    EB = cntr_array[3]
+    #Mag
+    DS = cntr_array[4]
+    DB = cntr_array[5]
 
-# Iterate and produce grid array for helix's radius
-for k in L_scl:
-    phi = np.linspace(0.,36*pi,n) + np.pi
-    path = np.array([L*np.cos(phi)/k,15*phi,L*np.sin(phi)/k]).T
+    #coord arrays
+    coord_x = []
+    coord_y = []
+
+    for i in range(len(B_array)):
+        col = AngleCol_array[i]
+        cross = AngleCross_array[i]
+        bmag = B_array[i]
+        #print(str(col) + ', ' + str(cross) + ', ' + str(bmag))
+        coord = meanCentroid(getShapes(col, CS, CB), getShapes(cross, ES, EB), getShapes(bmag, DS, DB))
+        coord_x.append(coord[0])
+        coord_y.append(coord[1])
+        #print(coord)
+
+    percent = percentError(coord_x, coord_y, lmbda, radius)
+    print('Percent Error for lambda: ' + str(percent[0]))
+    print('Percent Error for radius: ' + str(percent[1]))
+
+def twoDimContour(lmda_res = 101, L_res = 101):
+
+    ################ Single loop wire ################
+    ### Initialize path
+    phi = np.linspace(0.,36*pi,n) + 0.5
+    path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
     path[:,1] -= path[0,1]
+    ### Initialize mass
+    mass = np.ones((n,1))*dm
+    ### Create wire
     wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
+    ##################################################
+    # Initialize length of grid arrays
+    lmda = 15*2*pi
+    rad = 4.67
+    lmda_scl = range(1, lmda_res) #NOTE: both ranges must be the same size
+    L_scl = range(1, L_res)
 
-    radius_array.append(L/k)
+    # Create a series of points NOTE: probes[0] and probes[1] were moved to exactly the middle
+    probes = np.array([[rad*L, lmda*9 , 0], [0, lmda*9 , rad*L]])
 
-# Iterate through the grid arrays and calculate magnetic field and phi and theta
-for j in lmda_scl:
-    B_L = []
-    angleCol_L = []
-    angleCross_L = []
-    B_L1 = []
-    angleCol_L1 = []
-    angleCross_L1 = []
+    # Initialize the grid arrays for the contour
+    lambda_array = []
+    radius_array = []
+    B_array = []
+    angleCol_array = []
+    angleCross_array = []
+    B_array1 = []
+    angleCol_array1 = []
+    angleCross_array1 = []
+
+    # Iterate and produce grid array for helix's radius
     for k in L_scl:
         phi = np.linspace(0.,36*pi,n) + np.pi
-        path = np.array([L*np.cos(phi)/k,15*phi/j,L*np.sin(phi)/k]).T
+        path = np.array([L*np.cos(phi)/k,15*phi,L*np.sin(phi)/k]).T
         path[:,1] -= path[0,1]
         wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
 
-        B = biot_savart(probes[0], I, wr.p, delta = 0.1)
-        B1 = biot_savart(probes[1], I, wr.p, delta = 0.1)
-        B_L.append(mag(B))
-        B_L1.append(mag(B1))
-        angleCol_L.append(angleCol(B, probes[0]))
-        angleCol_L1.append(angleCol(B1, probes[1]))
-        angleCross_L.append(angleCrossSection(B, probes[0]))
-        angleCross_L1.append(angleCrossSection(B1, probes[1]))
+        radius_array.append(L/k)
 
-    lambda_array.append(lmda/j) # Produce gird array for the helix's lambda
-    B_array.append(B_L)
-    angleCol_array.append(angleCol_L)
-    angleCross_array.append(angleCross_L)
-    B_array1.append(B_L1)
-    angleCol_array1.append(angleCol_L1)
-    angleCross_array1.append(angleCross_L1)
+    # Iterate through the grid arrays and calculate magnetic field and phi and theta
+    for j in lmda_scl:
+        B_L = []
+        angleCol_L = []
+        angleCross_L = []
+        B_L1 = []
+        angleCol_L1 = []
+        angleCross_L1 = []
+        for k in L_scl:
+            phi = np.linspace(0.,36*pi,n) + np.pi
+            path = np.array([L*np.cos(phi)/k,15*phi/j,L*np.sin(phi)/k]).T
+            path[:,1] -= path[0,1]
+            wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
 
-#print(B_array)
-#print(angleCol_array)
-#print(angleCross_array)
+            B = biot_savart(probes[0], I, wr.p, delta = 0.1)
+            B1 = biot_savart(probes[1], I, wr.p, delta = 0.1)
+            B_L.append(mag(B))
+            B_L1.append(mag(B1))
+            angleCol_L.append(angleCol(B, probes[0]))
+            angleCol_L1.append(angleCol(B1, probes[1]))
+            angleCross_L.append(angleCrossSection(B, probes[0]))
+            angleCross_L1.append(angleCrossSection(B1, probes[1]))
 
-# Plot different contour maps
-fig = plt.figure(1)
-ax = fig.add_subplot(121)
-ax1 = fig.add_subplot(122)
-CS = ax.contourf(lambda_array, radius_array, angleCol_array, ncl)
+        lambda_array.append(lmda/j) # Produce gird array for the helix's lambda
+        B_array.append(B_L)
+        angleCol_array.append(angleCol_L)
+        angleCross_array.append(angleCross_L)
+        B_array1.append(B_L1)
+        angleCol_array1.append(angleCol_L1)
+        angleCross_array1.append(angleCross_L1)
+
+    #print(B_array)
+    #print(angleCol_array)
+    #print(angleCross_array)
+
+    # Plot different contour maps
+    fig = plt.figure(1)
+    ax = fig.add_subplot(111)
+    #ax1 = fig.add_subplot(122)
+    CS = ax.contourf(lambda_array, radius_array, angleCol_array, ncl)
+    #CS1 = ax1.contourf(lambda_array, radius_array, angleCol_array1, ncl)
+    CB = fig.colorbar(CS, shrink=0.8, extend='both')
+    plt.ylabel('Radius of Helix Current [cm]')
+    plt.xlabel('Lambda [cm]')
+    plt.title('Angle of Magnetic Field Vector Relative to the Column')
+
+    fig = plt.figure(2)
+    ax = fig.add_subplot(111)
+    #ax1 = fig.add_subplot(122)
+    ES = ax.contourf(lambda_array, radius_array, angleCross_array, ncl)
+    #ES1 = ax1.contourf(lambda_array, radius_array, angleCross_array1, ncl)
+    EB = fig.colorbar(ES, shrink=0.8, extend='both')
+    plt.ylabel('Radius of Helix Current [cm]')
+    plt.xlabel('Lambda [cm]')
+    plt.title('Angle of Magnetic Field Vector Relative to the Cross Section Plane')
+
+    fig = plt.figure(3)
+    ax = fig.add_subplot(111)
+    #ax1 = fig.add_subplot(122)
+    DS = ax.contourf(lambda_array, radius_array, B_array, ncl)
+    #DS1 = ax1.contourf(lambda_array, radius_array, B_array1, ncl)
+    DB = fig.colorbar(DS, shrink=0.8, extend='both')
+    plt.ylabel('Radius of Helix Current [cm]')
+    plt.xlabel('Lambda [cm]')
+    plt.title('Magnitude of Magnetic Field')
+
+    plt.show()
+
+    return [CS, CB, ES, EB, DS, DB]
+
+def percentError(x_array, y_array, x_actual, y_actual):
+    x_avg = np.mean(x_array)
+    y_avg = np.mean(y_array)
+    percent_x = (x_actual - x_avg)*100/x_actual
+    percent_y = (y_actual - y_avg)*100/y_actual
+    return [percent_x, percent_y]
+#print(meanCentroid(getShapes(-1.4, CS, CB), getShapes(1.0, ES, EB), getShapes(0.03, DS, DB)))
 
 
+"""HEY MAGNUS, read the comments below:"""
+######## Simulate data similar to AHF runs ###########
 
-CS1 = ax1.contourf(lambda_array, radius_array, angleCol_array1, ncl)
-CB = fig.colorbar(CS, shrink=0.8, extend='both')
+#Pick a lambda and radius you choose to simualte:
+l = 25
+r = 3
 
-#rint(CB.boundaries)
-#cl_nm = colorNumber(-1.4, CB.boundaries)
-#contour_path = getContourVerts(CS)
-print(getShapes(-1.4, CS, CB))
-print(getCenter(getShapes(-1.4, CS, CB)))
+#Pick how much noise you want for each axis
+x_scl = 1.
+y_scl = 1.
+z_scl = 1.
 
+#Pick number for range of time
+t = 100
 
-plt.ylabel('Radius of Helix Current [cm]')
-plt.xlabel('Lambda [cm]')
-plt.title('Angle of Magnetic Field Vector Relative to the Column')
+B_data = timeSeries(l, r, t, x_scl, y_scl, z_scl)
 
-fig = plt.figure(2)
-ax = fig.add_subplot(121)
-ax1 = fig.add_subplot(122)
-ES = ax.contourf(lambda_array, radius_array, angleCross_array, ncl)
-ES1 = ax1.contourf(lambda_array, radius_array, angleCross_array1, ncl)
-EB = fig.colorbar(ES, shrink=0.8, extend='both')
-plt.ylabel('Radius of Helix Current [cm]')
-plt.xlabel('Lambda [cm]')
-plt.title('Angle of Magnetic Field Vector Relative to the Cross Section Plane')
+######## Estimate the lamda and radius of helix ######
 
-fig = plt.figure(3)
-ax = fig.add_subplot(121)
-ax1 = fig.add_subplot(122)
-DS = ax.contourf(lambda_array, radius_array, B_array, ncl)
-DS1 = ax1.contourf(lambda_array, radius_array, B_array1, ncl)
-DB = fig.colorbar(DS, shrink=0.8, extend='both')
-plt.ylabel('Radius of Helix Current [cm]')
-plt.xlabel('Lambda [cm]')
-plt.title('Magnitude of Magnetic Field')
-plt.show()
+#This will print out
+modelLambdaRadius(B_data[0], B_data[1], B_data[2], l, r)
