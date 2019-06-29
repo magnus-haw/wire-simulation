@@ -129,9 +129,9 @@ for k in time:
     B_mag_off_posz.append(mag(B_off_posz))
 
 plt.figure(1)
-plt.plot(time, B_mag, color = (0.278791, 0.062145, 0.386592, 1.), label="with no offset")
 plt.plot(time, B_mag_off_negx, 'bo', label="with offset in -x dir")
 plt.plot(time, B_mag_off_posz, 'go', label="with offset in z dir")
+plt.plot(time, B_mag, color = (0.278791, 0.062145, 0.386592, 1.), label="with no offset")
 plt.ylabel('Magnitude of Magnetic Field [T]')
 plt.xlabel('Time')
 plt.legend()

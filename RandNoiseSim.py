@@ -62,6 +62,14 @@ def mag(components):
     magnitude = ((x**2) + (y**2) + (z**2))**(0.5)
     return magnitude
 
+def avg(array):
+    l = len(array)
+    avg = 0
+    for i in array:
+        avg = avg + i
+    avg = avg/l
+    return avg
+
 def avgPlot(noisy_data):
     avg_plot = []
     avg_temp = []
@@ -86,6 +94,59 @@ def changeTimeScale(axis, length):
         count += 1
         if count >= length:
             return scaled_axis
+
+def randomNoise(probe, x_scale = 0., y_scale = 0., z_scale = 0., time = range(0, 100)):
+    B_mag = []
+    B_mag_noise = []
+
+    n_time = len(time)
+    n_time = n_time/2.
+
+    deviation = []
+
+    for i in time:
+        phi = np.linspace(0.,36*pi,n) + np.pi*i/n_time
+        path = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
+        path[:,1] -= path[0,1]
+        ### Initialize mass
+        mass = np.ones((n,1))*dm
+        ### Create wire
+        wr = Wire(path,path*0,mass,I,r=0.3,Bp=1)
+
+        B = biot_savart(probe, I, wr.p, delta = 0.1)
+        B_mag.append(mag(B))
+
+    for j in time:
+        phi = np.linspace(0.,36*pi,n) + np.pi*j/n_time
+        path_noise = np.array([L*np.cos(phi),15*phi,L*np.sin(phi)]).T
+
+        # Add random noise
+        for i in range(len(path_noise)):
+            #unecessary v
+            randFloatx = random.uniform(-x_scale, x_scale)
+            randFloaty = random.uniform(-y_scale, y_scale)
+            randFloatz = random.uniform(-z_scale, z_scale)
+            #unecessary ^
+            path_noise[i][0]= path_noise[i][0] + randFloatx
+            path_noise[i][1]= path_noise[i][1] + randFloaty
+            path_noise[i][2]= path_noise[i][2] + randFloatz
+
+        path_noise[:,1] -= path_noise[0,1]
+        ### Initialize mass
+        mass = np.ones((n,1))*dm
+        ### Create wire
+        wr_noise = Wire(path_noise,path_noise*0,mass,I,r=0.3,Bp=1)
+
+        # Calculate the magnetic field at each instance
+        B_noise = biot_savart(probe, I, wr_noise.p, delta = 0.1)
+        B_mag_noise.append(mag(B_noise))
+
+    for k in range(len(B_mag)):
+        deviation.append(abs(B_mag[k] - B_mag_noise[k]))
+
+    print(avg(deviation))
+    return [time, B_mag, B_mag_noise, wr, wr_noise]
+
 
 ############# Random Noise in both x, y, z directions #################
 
@@ -148,19 +209,19 @@ for k in time:
     B_mag_noise1.append(mag(B_noise1))
 
 # Plot simulation and data
-wr.show()
-wr_noise.show()
-wr_noise1.show()
-mlab.show()
+# wr.show()
+# wr_noise.show()
+# wr_noise1.show()
+# mlab.show()
 
-plt.figure(1)
-plt.plot(time, B_mag, 'r-', label="ideal helix")
-plt.plot(time, B_mag_noise, 'b-', label="with random noise; delta = 0.0-1.0")
-plt.plot(time, B_mag_noise1, 'g-', label="with randome noise; delta = 0.0-3.0")
-plt.ylabel('Magnitude of Magnetic Field [T]')
-plt.xlabel('Time')
-plt.legend()
-plt.title('B Field vs. Time (Randome 3D Noise)')
+# plt.figure(1)
+# plt.plot(time, B_mag_noise1, 'g-', label="with randome noise; delta = 0.0-3.0")
+# plt.plot(time, B_mag_noise, 'b-', label="with random noise; delta = 0.0-1.0")
+# plt.plot(time, B_mag, 'r-', label="ideal helix")
+# plt.ylabel('Magnitude of Magnetic Field [T]')
+# plt.xlabel('Time')
+# plt.legend()
+# plt.title('B Field vs. Time (Randome 3D Noise)')
 
 ############## Random Noise (varying lambda) #################
 
@@ -212,17 +273,41 @@ for k in time:
     B_mag_lmda_ns1.append(mag(B_noise1))
 
 # Plot simulation and data
-wr.show()
-wr_noise.show()
-wr_noise1.show()
-mlab.show()
+# wr.show()
+# wr_noise.show()
+# wr_noise1.show()
+# mlab.show()
 
-plt.figure(2)
-plt.plot(time, B_mag, 'r-', label="ideal helix")
-plt.plot(time, B_mag_lmda_ns, 'b-', label="with random lambda noise; delta = 0.99-1.01")
-plt.plot(time, B_mag_lmda_ns1, 'y-', label="with randome lambda noise; delta = 0.97-1.03")
-plt.ylabel('Magnitude of Magnetic Field [T]')
-plt.xlabel('Time')
-plt.legend()
-plt.title('B Field vs. Time (Random Lambda Noise)')
-plt.show()
+# plt.figure(2)
+# plt.plot(time, B_mag_lmda_ns1, 'y-', label="with randome lambda noise; delta = 0.97-1.03")
+# plt.plot(time, B_mag_lmda_ns, 'b-', label="with random lambda noise; delta = 0.99-1.01")
+# plt.plot(time, B_mag, 'r-', label="ideal helix")
+# plt.ylabel('Magnitude of Magnetic Field [T]')
+# plt.xlabel('Time')
+# plt.legend()
+# plt.title('B Field vs. Time (Random Lambda Noise)')
+
+data = randomNoise(probes[0], 3., 1., 1., range(0, 500))
+data1 = randomNoise(probes[0], 1., 3., 1., range(0, 500))
+data2 = randomNoise(probes[0], 1., 1., 3., range(0, 500))
+data = randomNoise(probes[0], 3., 1., 1., range(0, 500))
+data1 = randomNoise(probes[0], 1., 3., 1., range(0, 500))
+data2 = randomNoise(probes[0], 1., 1., 3., range(0, 500))
+data = randomNoise(probes[0], 3., 1., 1., range(0, 500))
+data1 = randomNoise(probes[0], 1., 3., 1., range(0, 500))
+data2 = randomNoise(probes[0], 1., 1., 3., range(0, 500))
+
+# data[3].show()
+# data[4].show()
+# mlab.show()
+#
+# plt.figure(3)
+# plt.plot(data[0], data[1], 'r-', label = 'ideal helix')
+# plt.plot(data[0], data[2], 'b-', label = 'x_scale = 3, y_scale=z_scale=1')
+# plt.plot(data[0], data1[2], 'g-', label = 'x_scale = 1, y_scale=3, z_scale=1')
+# plt.plot(data[0], data2[2], 'm-', label = 'x_scale = 1, y_scale=1, z_scale=3')
+# plt.ylabel('Magnitude of Magnetic Field [T]')
+# plt.xlabel('Time')
+# plt.legend()
+# plt.title('B Field vs. Time (Random Lambda Noise)')
+# plt.show()
