@@ -12,6 +12,7 @@ from Wires import Wire,State
 from Utility import biot_savart
 
 import matplotlib.pyplot as plt
+import scipy.fftpack
 import random
 
 ### Dimensional scales
@@ -80,7 +81,7 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
     #Lambda is measured in centimeters
     #Radius is measured in centimeters
     rad = 4.67
-    probes = np.array([[rad*L, lmbda*9 , 0], [0, lmbda*9 , rad*L]])
+    probes = np.array([[4., lmbda*9 , 0], [0, lmbda*9 , 4.]])
     lmbda = lmbda/(2.*np.pi)
     t = range(0, time)
 
@@ -93,8 +94,8 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
     B1_angleCross = []
 
     for i in t:
-        phi = np.linspace(0.,36*pi,n) + np.pi*i/(time/2.)
-        path_noise = np.array([L*np.cos(phi),lmbda*phi,L*np.sin(phi)]).T
+        phi = np.linspace(0.,36*pi,n) + np.pi*3.*i/(time)
+        path_noise = np.array([radius*np.cos(phi),lmbda*phi,radius*np.sin(phi)]).T
 
         # Add random noise
         for i in range(len(path_noise)):
@@ -116,6 +117,7 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
         # Calculate the magnetic field at each instance
         B0 = biot_savart(probes[0], I, wr_noise.p, delta = 0.1)
         B1 = biot_savart(probes[1], I, wr_noise.p, delta = 0.1)
+
         B0_mag.append(mag(B0))
         B1_mag.append(mag(B1))
         B0_angleCol.append(angleCol(B0, probes[0]))
@@ -127,10 +129,16 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
     plt.plot(t, B0_mag, 'b-', label="Magnitude")
     plt.plot(t, B0_angleCol, 'g-', label="Angle relative to column")
     plt.plot(t, B0_angleCross, 'r-', label="Angle relative to cross section plane")
+    plt.plot(t, B1_mag, 'b-', label="Magnitude")
+    plt.plot(t, B1_angleCol, 'g-', label="Angle relative to column")
+    plt.plot(t, B1_angleCross, 'r-', label="Angle relative to cross section plane")
     plt.ylabel('Magnitude of Magnetic Field [T]')
     plt.xlabel('Time')
     plt.legend()
     plt.title('B Field vs. Time')
+
     plt.show()
 
     return [B0_mag, B0_angleCol, B0_angleCross, B1_mag, B1_angleCol, B1_angleCross]
+
+timeSeries(50., 3., 100, .1, .1, .1)
