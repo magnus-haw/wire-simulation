@@ -94,7 +94,7 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
     B1_angleCross = []
 
     for i in t:
-        phi = np.linspace(0.,36*pi,n) + np.pi*3.*i/(time)
+        phi = np.linspace(0.,36*pi,n) + np.pi*2.*i/(time)
         path_noise = np.array([radius*np.cos(phi),lmbda*phi,radius*np.sin(phi)]).T
 
         # Add random noise
@@ -125,20 +125,15 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
         B0_angleCross.append(angleCrossSection(B0, probes[0]))
         B1_angleCross.append(angleCrossSection(B1, probes[1]))
 
-    plt.figure(1)
-    plt.plot(t, B0_mag, 'b-', label="Magnitude")
-    plt.plot(t, B0_angleCol, 'g-', label="Angle relative to column")
-    plt.plot(t, B0_angleCross, 'r-', label="Angle relative to cross section plane")
-    plt.plot(t, B1_mag, 'b-', label="Magnitude")
-    plt.plot(t, B1_angleCol, 'g-', label="Angle relative to column")
-    plt.plot(t, B1_angleCross, 'r-', label="Angle relative to cross section plane")
-    plt.ylabel('Magnitude of Magnetic Field [T]')
-    plt.xlabel('Time')
-    plt.legend()
-    plt.title('B Field vs. Time')
-
-    plt.show()
+    # plt.figure(1)
+    # plt.plot(t, B0_mag, 'b-', label="Magnitude")
+    # plt.plot(t, B0_angleCol, 'g-', label="Angle relative to column")
+    # plt.plot(t, B0_angleCross, 'r-', label="Angle relative to cross section plane")
+    # # plt.plot(t, B1_mag, 'b-', label="Magnitude")
+    # # plt.plot(t, B1_angleCol, 'g-', label="Angle relative to column")
+    # # plt.plot(t, B1_angleCross, 'r-', label="Angle relative to cross section plane")
+    # plt.xlabel('Time')
+    # plt.legend()
+    # plt.title('B Field vs. Time')
 
     return [B0_mag, B0_angleCol, B0_angleCross, B1_mag, B1_angleCol, B1_angleCross]
-
-timeSeries(50., 3., 100, .1, .1, .1)

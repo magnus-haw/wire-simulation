@@ -133,7 +133,7 @@ rad = 4.67
 time = range(0, 100)
 
 # Create a series of points
-probes = np.array([[rad*L, lmda*2 , 0], [0, lmda*2 , rad*L], [-rad*L, lmda*2, 0]])
+probes = np.array([[rad*L, lmda*9 , 0], [0, lmda*9 , rad*L], [-rad*L, lmda*2, 0]])
 probes0 = np.array([[0, lmda*2 , -L*rad], [rad*L, lmda*2.33 , 0], [0, lmda*3, rad*L]])
 probes1 = np.array([[-rad*L, lmda*3 , 0], [0, lmda*3, -rad*L], [rad*L, lmda*4, 0]])
 probes2 = np.array([[0, lmda*4, rad*L], [-rad*L, lmda*4, 0], [0, lmda*4, -rad*L]])
@@ -244,31 +244,34 @@ for l in time:
 max_angle = maxAngle(B_array, probes[0])
 
 # Calculating the magnitude of each vector and indexing the instance of max angle
-B_array_mag = []
-t = 0.
-B_max_angle_mag = 0.
-for m in B_array:
-    if mag(m) == mag(max_angle[0]):
-        t = B_array.index(m)
-        B_max_angle_mag = mag(m)
-    B_array_mag.append(mag(m))
-
-fig = plt.figure(3)
-ax = fig.add_subplot(111)
-plt.plot(time, B_array_mag, 'ro', label = 'Magnetic Field')
-plt.ylabel('Magnitude of Magnetic Field [T]')
-plt.xlabel('Time')
-plt.title('B Field vs. Time')
-string = 'max angle = ' + str(max_angle[1]) + ' rad'
-ax.annotate(string, xy = (t, B_max_angle_mag))
-plt.legend()
-plt.show()
+# B_array_mag = []
+# t = 0.
+# B_max_angle_mag = 0.
+# for m in B_array:
+#     if mag(m) == mag(max_angle[0]):
+#         t = B_array.index(m)
+#         B_max_angle_mag = mag(m)
+#     B_array_mag.append(mag(m))
+#
+# fig = plt.figure(3)
+# ax = fig.add_subplot(111)
+# plt.plot(time, B_array_mag, 'ro', label = 'Magnetic Field')
+# plt.ylabel('Magnitude of Magnetic Field [T]')
+# plt.xlabel('Time')
+# plt.title('B Field vs. Time')
+# string = 'max angle = ' + str(max_angle[1]) + ' rad'
+# ax.annotate(string, xy = (t, B_max_angle_mag))
+# plt.legend()
+# plt.show()
 #########################################################################
 
 # plotting the components of the magnetic field at one probe in a time series
 Bx = []
 By = []
 Bz = []
+Bx1 = []
+By1 = []
+Bz1 = []
 
 # Producing a time series at wavelength:
 for k in time:
@@ -279,12 +282,19 @@ for k in time:
 
     # Calculate magnetic field and its components
     B = biot_savart(probes[0], I, wr.p, delta = 0.1)
+    B1 = biot_savart(probes[1], I, wr.p, delta = 0.1)
     x = B[0]
     y = B[1]
     z = B[2]
+    x1 = B1[0]
+    y1 = B1[1]
+    z1 = B1[2]
     Bx.append(x)
     By.append(y)
     Bz.append(z)
+    Bx1.append(x1)
+    By1.append(y1)
+    Bz1.append(z1)
 
 plt.figure(4)
 plt.plot(time, Bx, 'ro', label = 'x-component')
@@ -298,7 +308,8 @@ plt.show()
 
 ## plotting the time series of the vector of the magnetic field
 mlab.points3d(Bx, By, Bz)
-mlab.points3d(0., 0., 0., name = 'Origin', color = (1., 0., 0.), scale_factor = 0.001)
+mlab.points3d(Bx1, By1, Bz1)
+#mlab.points3d(0., 0., 0., name = 'Origin', color = (1., 0., 0.), scale_factor = 0.001)
 mlab.title('Magnetic Field Vector at Probe')
 mlab.axes(ranges = [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5], x_axis_visibility=True, y_axis_visibility=True, z_axis_visibility=True)
 mlab.show()
