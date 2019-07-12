@@ -21,7 +21,7 @@ v0 = 150 #m/s
 tau = L/v0 #s
 dt = .02*tau
 n=1000
-mu = 1.257*10**-6
+mu = pi*4e-7
 
 print("L (m)", L)
 print("I (A)", B0)
@@ -58,23 +58,24 @@ def magStraightWire(I, radial_dist):
 # Initialize probes
 l = 15*2*pi
 rad = 4.67
-probes = np.array([[L*rad, 2. , 0], [0, 0 , rad*L], [-rad*L, 0, 0],
+probes = np.array([[L*rad, 0. , 0], [0, 0 , rad*L], [-rad*L, 0, 0],
                    [0, 0 , -L*rad], [rad*L, l*2 , 0], [0, l*2, rad*L],
                    [-rad*L, l*2 , 0], [0, l*2, -rad*L]])
 
 #Initialize path/wire
 phi = np.linspace(-48.*pi, 48.*pi, n)
 const1 = 10. #slope of x-direction
-path = np.array([const1*0.*phi, 10.*phi,0.*phi]).T
+path = np.array([const1*0.*phi, .01*phi,0.005*phi]).T
 mass = np.ones((n,1))
 wr = Wire(path, path*0., mass, I, r=0.3, Bp=1)
 
 #Calculate the magnetic field vector at probes[0]
+# All values in SI units
 Bvec = biot_savart_SI(probes[0], I, wr.p, delta = 0.01)
 
 print(Bvec)#print vector
 print(mag(Bvec))#print magnitude of vector
-print(magStraightWire(I, probes[0][0]/100))#print magnitude of wire assuming ideal straight wire formula
+print(magStraightWire(I, probes[0][0]))#print magnitude of wire assuming ideal straight wire formula
 
 Bz = Bvec[2]
 Bphi = magStraightWire(I, probes[0][0])
