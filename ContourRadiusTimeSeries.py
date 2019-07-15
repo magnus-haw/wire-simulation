@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 #Set font size for plots
 font = {'family' : 'normal',
         'weight' : 'normal',
-        'size'   : 14}
+        'size'   : 16}
 plt.rc('font', **font)
 
 from shapely.geometry import Polygon, MultiPolygon
@@ -210,7 +210,6 @@ def intersection(shape_col, shape_mag, shape_cross):
     poly_col = None
     poly_cross = None
 
-    print(len(shape_col))
     if len(shape_col) > 1:
         viable_poly_col = []
         # Find all viable polygons that intersect with poly_mag
@@ -259,9 +258,9 @@ def getLambdaAndRadius(shape_col, shape_mag, shape_cross):
     center_col = poly_array[0].centroid.coords[0]
     center_mag = poly_array[1].centroid.coords[0]
     center_cross = poly_array[2].centroid.coords[0]
-    print('Centroid of col = ' + str(center_col))
-    print('Centroid of mag = ' + str(center_mag))
-    print('Centroid of cross = ' + str(center_cross))
+    # print('Centroid of col = ' + str(center_col))
+    # print('Centroid of mag = ' + str(center_mag))
+    # print('Centroid of cross = ' + str(center_cross))
 
     mean_lambda = (center_col[0] + center_mag[0] + center_cross[0])/3.
     mean_radius = (center_col[1] + center_mag[1] + center_cross[1])/3.
@@ -271,20 +270,25 @@ def getLambdaAndRadius(shape_col, shape_mag, shape_cross):
 # Returns the most probable polygon based on its intersection's area
 def probPoly(poly_mag, viable_poly_array):
     prob_poly = viable_poly_array[0]
-    max_area = viable_poly_array[0].intersection(poly_mag)
+    max_area = viable_poly_array[0].intersection(poly_mag).area
 
     for i in viable_poly_array:
-        area = i.intersection(poly_mag)
+        area = i.intersection(poly_mag).area
         if area > max_area:
             max_area = area
             prob_poly = i
 
     return prob_poly
+
+# Calculates the percent of deviation from a selected value
+def percent(obs_val, act_val):
+    percent = abs(100*(obs_val - act_val)/act_val)
+    return percent
 ############################################
 #Calculate spherical coordinates of time-series of magnetic field
 
 fig, [ax1, ax2, ax3] = plt.subplots(1, 3, sharex = True)
-B_data = timeSeries(45., 3., 100, 0., 0., 0.)
+B_data = timeSeries(45., 3., 100, 0.5, 0.5, 0.5)
 ax1.plot(B_data[0])
 ax1.set_ylabel('Magnitude of Magnetic Field Vector')
 ax1.set_xlabel('Time (Samples)')
@@ -311,8 +315,8 @@ wr = Wire(path, path*0., mass, I, r=0.3, Bp=1)
 #Initialize
 l = 15*2*pi
 rad = 4.67
-res = 26
-l_rng = range(1, res)
+res = 51
+t_rng = range(1, res)
 r_rng = range(1, res)
 
 #Create a series of points
@@ -328,7 +332,7 @@ wr.show()
 mlab.show()
 
 # Initialize grid arrays for the contour
-l_array = []
+t_array = []
 r_array = []
 
 #Initialize contour-value arrays
@@ -339,7 +343,7 @@ bangleCross = []
 #Iterate and produce gird array for helix's radius
 for i in r_rng:
     #The constant allows the radius to vary between twice its current size to near 0
-    constant = 0.04*i
+    constant = 0.02*i
     #append to the grid array the actual values of the varied radius
     r_array.append(2.*L*constant)
 
@@ -347,12 +351,11 @@ for j in r_rng:
     bmag_i = []
     bangleCol_i = []
     bangleCross_i = []
-    for i in l_rng:
-        const1 = 0.04*i
-        const2 = 0.04*j
-        phi = np.linspace(-48*pi,48*pi,n)
-        path = np.array([2.*L*np.cos(phi)*const2,1.5*15*phi*const1,2.*L*np.sin(phi)*const2]).T
-        #path[:,1] -= path[0,1]
+    for i in t_rng:
+        const2 = 0.02*j
+        phi = np.linspace(0,48*pi,n) + 2.*np.pi*2.*i/res
+        path = np.array([2.*L*np.cos(phi)*const2,15*phi,2.*L*np.sin(phi)*const2]).T
+        path[:,1] -= path[0,1]
         wr = Wire(path,path*0,mass,I,r=.3,Bp=1)
 
         # print('Radius of wire: ' + str(2.*L*const2))
@@ -365,10 +368,6 @@ for j in r_rng:
         bangleCol_i.append(angleCol(B, probes[0]))
         bangleCross_i.append(angleCross(B, probes[0]))
 
-        if j == 1:
-            #append to the grid array the actual values of the varied lambdas
-            l_array.append(1.5*l*const1)
-
     #Append 1D arrays to make two dimensional arrays
     bmag.append(bmag_i)
     bangleCol.append(bangleCol_i)
@@ -377,45 +376,74 @@ for j in r_rng:
 fig, [ax1, ax2, ax3] = plt.subplots(1, 3, sharex = True)
 
 # Plot contour map of angle relative to Column
-CS0 = ax1.contourf(l_array, r_array, bangleCol, ncl)
+CS0 = ax1.contourf(t_rng, r_array, bangleCol, ncl)
 CB0 = fig.colorbar(CS0, shrink=1., extend='both', ax=ax1)
 ax1.set_ylabel('Radius of Helix Current [cm]')
-ax1.set_xlabel('Lambda [cm]')
+ax1.set_xlabel('Time (Samples)')
+ax1.set_title('Angle Relative to Column [rad]')
 
 # Plot contour map of magnitude of magnetic field vector
-CS1 = ax2.contourf(l_array, r_array, bmag, ncl)
+CS1 = ax2.contourf(t_rng, r_array, bmag, ncl)
 CB1 = fig.colorbar(CS1, shrink=1., extend='both', ax=ax2)
 ax2.set_ylabel('Radius of Helix Current [cm]')
-ax2.set_xlabel('Lambda [cm]')
+ax2.set_xlabel('Time (Samples)')
+ax2.set_title('Magnitude [Tesla]')
 
 # Plot contour map of angle relative to Column
-CS2 = ax3.contourf(l_array, r_array, bangleCross, ncl)
+CS2 = ax3.contourf(t_rng, r_array, bangleCross, ncl)
 CB2 = fig.colorbar(CS2, shrink=1., extend='both')
 ax3.set_ylabel('Radius of Helix Current [cm]')
-ax3.set_xlabel('Lambda [cm]')
+ax3.set_xlabel('Time (Samples)')
+ax3.set_title('Angle Relative to Cross Section [rad]')
 
 fig.suptitle('Magnetic Field Vector vs. Time & Radius', fontsize=16)
+################################################################################
 
+pk_to_pk_bmag = {}
+pk_to_pk_bangleCross = {}
+for i in range(len(bmag)):
+    max_bmag = max(bmag[i])
+    min_bmag = min(bmag[i])
+    peak_to_peak_bmag = max_bmag - min_bmag
+
+    max_bangleCross = max(bangleCross[i])
+    min_bangleCross = min(bangleCross[i])
+    peak_to_peak_bangleCross = max_bangleCross - min_bangleCross
+
+    pk_to_pk_bmag.update({r_array[i] : peak_to_peak_bmag})
+    pk_to_pk_bangleCross.update({r_array[i] : peak_to_peak_bangleCross})
+
+print('DICTIONARY OF PEAK TO PEAK VALUES: ')
+print(pk_to_pk_bmag)
+print(pk_to_pk_bangleCross)
+
+# For magnitude of the magnetic field vector
+data_max = max(B_data[0])
+data_min = min(B_data[0])
+data_pk_to_pk = data_max - data_min
+
+for radius, pk_to_pk in pk_to_pk_bmag.items():
+    print('For radius = ' + str(radius) + ', percent = ' + str(percent(pk_to_pk, data_pk_to_pk)))
 ################################################################################
 # Identify contour levels depending on the Magnetic Field vector
 
 # Coordinate arrays
-coord_x = []
-coord_y = []
+# coord_x = []
+# coord_y = []
+#
+# for i in range(len(bmag)):
+#     mag = B_data[0][i]
+#     col = B_data[1][i]
+#     cross = B_data[2][i]
 
-for i in range(len(bmag)):
-    mag = B_data[0][i]
-    col = B_data[1][i]
-    cross = B_data[2][i]
+    # print('col Value = ' + str(col))
+    # print('mag Value = ' + str(mag))
+    # print('cross Value = ' + str(cross))
 
-    print('col Value = ' + str(col))
-    print('mag Value = ' + str(mag))
-    print('cross Value = ' + str(cross))
-
-    shape_col = getShapes(col, CS0, CB0)
-    shape_mag = getShapes(mag, CS1, CB1)
-    shape_cross = getShapes(cross, CS2, CB2)
-    print(getLambdaAndRadius(shape_col, shape_mag, shape_cross))
-    print('\n')
+    # shape_col = getShapes(col, CS0, CB0)
+    # shape_mag = getShapes(mag, CS1, CB1)
+    # shape_cross = getShapes(cross, CS2, CB2)
+    # print(getLambdaAndRadius(shape_col, shape_mag, shape_cross))
+    # print('\n')
 
 plt.show()

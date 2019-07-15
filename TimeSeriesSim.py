@@ -25,6 +25,7 @@ B0 = I0*mu0/(2*pi*r0) #tesla
 vA0 = B0/np.sqrt(mu0*rho0)
 tau0 = L0/vA0 #s
 m0 = rho0*pi*r0*r0*L0
+v0 = 150 #m/s
 n = 1000
 
 ### Non-dimensional parameters
@@ -76,15 +77,23 @@ def angleCrossSection(B, coordinate):
         angle = mag_phi(B)
     return angle
 
-def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 0.):
+def timeSeries(lmbda, radius, time = 100,
+noise_x = 0., noise_y = 0., noise_z = 0.,
+cartesian = False, n_period = 1):
 
     #Lambda is measured in centimeters
     #Radius is measured in centimeters
+    l = 15*2*pi
     rad = 4.67
-    probes = np.array([[4., lmbda*9 , 0], [0, lmbda*9 , 4.]])
+    probes = np.array([[rad*L, 0 , 0], [0, 0 , rad*L], [-rad*L, 0, 0],
+                       [0, 0 , -L*rad], [rad*L, l*13 , 0], [0, l*13, rad*L],
+                       [-rad*L, l*13 , 0], [0, l*13, -rad*L]])
     lmbda = lmbda/(2.*np.pi)
     t = range(0, time)
 
+    B0_x = []
+    B0_y = []
+    B0_z = []
 
     B0_mag = []
     B0_angleCol = []
@@ -93,9 +102,16 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
     B1_angleCol = []
     B1_angleCross = []
 
+    act_time = []
+    time_count = 0.
     for i in t:
-        phi = np.linspace(0.,36*pi,n) + np.pi*2.*i/(time)
-        path_noise = np.array([radius*np.cos(phi),lmbda*phi,radius*np.sin(phi)]).T
+        phi = np.linspace(0.,48*pi,n) + np.pi*2.*i*n_period/(time)
+
+        step = np.pi*2.*n_period/(time)*(lmbda)
+        time_count = step/v0 + time_count
+        act_time.append(time_count)
+
+        path_noise = np.array([radius*np.cos(phi),15*phi,radius*np.sin(phi)]).T
 
         # Add random noise
         for i in range(len(path_noise)):
@@ -118,6 +134,9 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
         B0 = biot_savart(probes[0], I, wr_noise.p, delta = 0.1)
         B1 = biot_savart(probes[1], I, wr_noise.p, delta = 0.1)
 
+        B0_x.append(B0[0])
+        B0_y.append(B0[1])
+        B0_z.append(B0[2])
         B0_mag.append(mag(B0))
         B1_mag.append(mag(B1))
         B0_angleCol.append(angleCol(B0, probes[0]))
@@ -125,15 +144,18 @@ def timeSeries(lmbda, radius, time = 100, noise_x = 0., noise_y = 0., noise_z = 
         B0_angleCross.append(angleCrossSection(B0, probes[0]))
         B1_angleCross.append(angleCrossSection(B1, probes[1]))
 
-    # plt.figure(1)
-    # plt.plot(t, B0_mag, 'b-', label="Magnitude")
+    plt.figure(2)
+    plt.plot(t, B0_mag, 'b-', label="Magnitude")
     # plt.plot(t, B0_angleCol, 'g-', label="Angle relative to column")
     # plt.plot(t, B0_angleCross, 'r-', label="Angle relative to cross section plane")
     # # plt.plot(t, B1_mag, 'b-', label="Magnitude")
     # # plt.plot(t, B1_angleCol, 'g-', label="Angle relative to column")
     # # plt.plot(t, B1_angleCross, 'r-', label="Angle relative to cross section plane")
-    # plt.xlabel('Time')
-    # plt.legend()
-    # plt.title('B Field vs. Time')
+    plt.xlabel('Time')
+    plt.legend()
+    plt.title('B Field vs. Time')
 
-    return [B0_mag, B0_angleCol, B0_angleCross, B1_mag, B1_angleCol, B1_angleCross]
+    if cartesian == True:
+        return [B0_x,B0_y,B0_z, act_time]
+
+    return [B0_mag, B0_angleCol, B0_angleCross, B1_mag, B1_angleCol, B1_angleCross, act_time]

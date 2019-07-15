@@ -21,7 +21,7 @@ v0 = 150 #m/s
 tau = L/v0 #s
 dt = .02*tau
 n=1000
-mu = 1.257*10**-6
+mu = pi*4e-7
 
 print("L (m)", L)
 print("I (A)", B0)
@@ -56,34 +56,50 @@ def magStraightWire(I, radial_dist):
     return B
 ################################################################################
 # Initialize probes
-l = 15*2*pi
-rad = 4.67
-probes = np.array([[L*rad, 2. , 0], [0, 0 , rad*L], [-rad*L, 0, 0],
-                   [0, 0 , -L*rad], [rad*L, l*2 , 0], [0, l*2, rad*L],
-                   [-rad*L, l*2 , 0], [0, l*2, -rad*L]])
+R = 0.07
+probes = np.array([[R, 0. , 0], [0, R, 0], [-R, 0, 0],
+                   [0, -R, 0]])
 
 #Initialize path/wire
-phi = np.linspace(-48.*pi, 48.*pi, n)
-const1 = 10. #slope of x-direction
-path = np.array([const1*0.*phi, 10.*phi,0.*phi]).T
+phi = np.linspace(-pi/2, pi/2, n)
+path = np.array([0.*phi, 0.02*np.sin(phi), (phi/pi)/1.5]).T
 mass = np.ones((n,1))
-wr = Wire(path, path*0., mass, I, r=0.3, Bp=1)
+wr = Wire(path, path*0., mass, I, r=0.01, Bp=1)
 
 #Calculate the magnetic field vector at probes[0]
+# All values in SI units
 Bvec = biot_savart_SI(probes[0], I, wr.p, delta = 0.01)
 
 print(Bvec)#print vector
 print(mag(Bvec))#print magnitude of vector
-print(magStraightWire(I, probes[0][0]/100))#print magnitude of wire assuming ideal straight wire formula
+print(magStraightWire(I, probes[0][0]))#print magnitude of wire assuming ideal straight wire formula
 
 Bz = Bvec[2]
 Bphi = magStraightWire(I, probes[0][0])
 pred_theta = np.arcsin(Bz/Bphi)#predicted theta from Bz=Bphi*sin(x) method (assuming ideal wire condition)
-theta = mag_theta(Bvec)#actual theta from components
+theta = np.pi/2 - mag_theta(Bvec)#actual theta from components
 
-#print('Predicted: ' + str(pred_theta))
-#print('Simulated: ' + str(theta))
+print('Predicted: ' + str(pred_theta*180/pi))
+print('Simulated: ' + str(theta))
 
 wr.show()
-mlab.points3d(probes[:,0], probes[:,1], probes[:,2], scale_factor=4)
+mlab.points3d(probes[:,0], probes[:,1], probes[:,2], scale_factor=0.05)
+mlab.show()
+
+################################################################################
+#Helical Test Case
+
+phi = np.linspace(-pi/2, pi/2, n)
+path = np.array([0.02*np.cos(phi), 0.02*np.sin(phi), (phi/pi)/1.5]).T
+mass = np.ones((n, 1))
+wr = Wire(path, path*0, mass, I, r=0.01, Bp=1)
+
+Bvec = biot_savart_SI(probes[0], I, wr.p, delta = 0.01)
+Bz = Bvec[2]
+Bphi = magStraightWire(I, probes[0][0])
+pred_theta = np.arcsin(Bz/Bphi)#predicted theta from Bz=Bphi*sin(x) method (assuming ideal wire condition)
+print('For helical test case ' + str(pred_theta*180/pi))
+
+wr.show()
+mlab.points3d(probes[:,0], probes[:,1], probes[:,2], scale_factor=0.05)
 mlab.show()
