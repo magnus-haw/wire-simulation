@@ -112,6 +112,7 @@ def angle(points_array):
         y1 = points_array[i+1][1]
         z1 = points_array[i+1][2]
 
+        #hhhhhhhhhhhhh
         x = x1 - x0
         y = y1 - y0
         z = z1 - z0
