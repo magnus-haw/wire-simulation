@@ -62,37 +62,37 @@ def radialConstraint(vector, current):
     R = mu*I/(bmag*2.*np.pi)
     return R
 
-def intersection(R, position, Bvec, n_vec):
+def intersection(R, position, B, n_vec):
     #n_vec is an array (e.g. [0, 0, 1]) that represents the direction of the current
     x = position[0]
     y = position[1]
     z = position[2]
-    t = Symbol('t')
 
     if n_vec[0] == 0 and n_vec[1] == 0:
-        """ It is the R*cos(t)*N.i + R*sin(t)*N.k that needs modifying """
-        c = Bvec.dot(position)
-        v1 = c/Bvec[0]*N.i
-        Bvec = Bvec[0]*N.i + Bvec[1]*N.j + Bvec[2]*N.k
+        print('The calculated radius is ' + str(R))
+        pos_vec = position[0]*N.i + position[1]*N.j + position[2]*N.k
+        Bvec = B[0]*N.i + B[1]*N.j + B[2]*N.k
+        Bvec_norm = scale_vec(Bvec)
+        c = Bvec_norm.dot(pos_vec)
+        v1 = c/B[0]*N.i
         v2 = v1.cross(Bvec)
         v1, v2 = scale_vec(v1, R), scale_vec(v2, R)
-        v = minDistance_Z(position, v1, v2)
-        # v = x*N.i + y*N.j + z*N.k + v1*cos(t) + v2*sin(t)
-        # p = x*N.i + y*N.j + z*N.k
-        # n_vec = n_vec[0]*N.i + n_vec[1]*N.j + n_vec[2]*N.k
-        # eq = (v - p).dot(n_vec)
-        # sol = solve(eq, t)
+        v, vec_array = minDistance_Z(position, v1, v2)
         int_pnt = [v.dot(N.i), v.dot(N.j), v.dot(N.k)]
-    return int_pnt
+    return int_pnt, vec_array
 
 def minDistance_Z(pos, v1, v2):
     min_vec = None
+    vec_array = []
     min_z = 1000.
-    for t in range(0, 1000):
-        v = pos[0]*N.i + pos[1]*N.j + pos[2]*N.k + v1*np.cos(t) + v2*np.sin(t)
-        if v.dot(N.k) < min_z:
+    for t in range(0, 200):
+        v = pos[0]*N.i + pos[1]*N.j + pos[2]*N.k + v1*np.cos(t*0.005*2*np.pi) + v2*np.sin(t*0.005*2*np.pi)
+        vec = [v.dot(N.i), v.dot(N.j), v.dot(N.k)]
+        vec_array.append(vec)
+        if abs(v.dot(N.k)-pos[2]) < min_z and v.dot(N.i) < 0.07:
             min_vec = v
-    return min_vec
+            min_z = abs(v.dot(N.k)-pos[2])
+    return min_vec, vec_array
 
 def scale_vec(vector, length = 1):
     mag_vec = mag(vector)
@@ -122,6 +122,7 @@ def angle(points_array):
 
         theta_array.append(theta)
         phi_array.append(phi)
+
     return theta_array, phi_array
 
 def interpolate(pnt1, pnt2):
@@ -141,23 +142,20 @@ def current_pos(position, path):
 
 ################################################################################
 
-""" Remember to reconstruct a timeseries of the helix and test the function
-above"""
-
-# Initialize probes
-R = 0.07
-probes = np.array([[R, 0. , 0], [0, R, 0], [-R, 0, 0],
-                   [0, -R, 0]])
-n_vec = [0, 0, 1]
-
 Bvec_array = []
 pnt_array = []
 current_array = []
-t_rng = range(0, 10)
+t_rng = range(0, 100)
 for i in t_rng:
+    # Initialize probes
+    R = 0.07
+    const = i/100
+    probes = np.array([[R, 0. , const], [0, R, 0], [-R, 0, 0],
+                       [0, -R, 0]])
+    n_vec = [0, 0, 1]
 
     #Initialize path/wire
-    phi = np.linspace(-4.*np.pi, 4.*np.pi, n) + 2.*np.pi*i/100 # DISCUSS WITH MAGNUS THE LENGTH OF WIRE
+    phi = np.linspace(-4.*np.pi, 4.*np.pi, n) # DISCUSS WITH MAGNUS THE LENGTH OF WIRE
     path = np.array([0.02*np.cos(phi), 0.02*np.sin(phi), (phi/pi)/1.5]).T
     mass = np.ones((n,1))
     wr = Wire(path, path*0., mass, I, r=0.01, Bp=1)
@@ -167,10 +165,18 @@ for i in t_rng:
     Bvec = biot_savart_SI(probes[0], I, wr.p, delta = 0.01)
     Bvec_array.append(Bvec)
     r_dist = radialConstraint(Bvec, I)
-    pnt = intersection(r_dist, probes[0], Bvec, n_vec)
+    pnt, vec_array = intersection(r_dist, probes[0], Bvec, n_vec)
     pnt_array.append(pnt)
     current_pnt = current_pos(probes[0], path)
     current_array.append(current_pnt)
 
-print('CALCULATED POINTS OF CURRENT: ' + str(pnt_array))
-print('ACTUAL POINTS OF CURRENT: ' + str(current_array))
+    print('Predicted point = ' + str(pnt) + ', Actual point = ' + str(current_pnt))
+
+    if i%10 == 0:
+        vectors = np.array(vec_array, dtype = float)
+        pnt = np.array(pnt, dtype = float)
+        mlab.points3d(vectors[:,0], vectors[:,1], vectors[:,2],scale_factor=0.01, color = (0,1,0))
+        mlab.points3d(pnt[0], pnt[1], pnt[2], scale_factor=0.03, color=(1,0,0))
+        mlab.points3d(probes[0][0], probes[0][1], probes[0][2], scale_factor=0.03)
+        wr.show()
+        mlab.show()
