@@ -112,7 +112,6 @@ def angle(points_array):
         y1 = points_array[i+1][1]
         z1 = points_array[i+1][2]
 
-        #hhhhhhhhhhhhh
         x = x1 - x0
         y = y1 - y0
         z = z1 - z0
@@ -125,18 +124,20 @@ def angle(points_array):
         phi_array.append(phi)
     return theta_array, phi_array
 
+def interpolate(pnt1, pnt2):
+    x = np.mean([pnt1[0], pnt2[0]])
+    y = np.mean([pnt1[1], pnt2[1]])
+    z = np.mean([pnt1[2], pnt2[2]])
+    return [x, y, z]
+
 # Finds the closest distance from the dictionary of all distances
 def current_pos(position, path):
     path_list = path.tolist()
-    for i in path_list:
-        if percent(0., i[2]) < 100:
-            print('YEAH')
+    for i in range(len(path_list)):
+        if path_list[i][2] < 0 and path_list[i+1][2] > 0:
+            return interpolate(path_list[i], path_list[i+1])
     return None
 
-# Calculates the percent of deviation from a selected value
-def percent(obs_val, act_val):
-    percent = abs(100*(obs_val - act_val)/act_val)
-    return percent
 
 ################################################################################
 
