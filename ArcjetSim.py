@@ -67,6 +67,8 @@ time = range(0, timesteps)
 for j in time:
     phi = np.linspace(0.,12*pi,n) + np.pi*j/50.
     path = np.array([L*np.cos(phi),.15*phi,L*np.sin(phi)]).T
+    print(path)
+    print('\n')
     wr = Wire(path,path*0,mass,I,r=.3)
 
     for p in range(0,len(probes)):
@@ -79,15 +81,15 @@ Bmag = np.sqrt(Bx**2 + By**2 + Bz**2)*B0
 
 
 ############### Plot B-field Magnitude ############
-# plt.figure(1)
-#
-# for p in range(0,len(probes)):
-#     plt.plot(Bmag[:,p])
-# plt.xlabel('Time')
-# plt.ylabel('Magnitude of Magnetic Field [T]')
-# plt.title('B Field vs. Time (*lambda = pi*(1.2))')
-# plt.legend()
-# plt.show()
+plt.figure(1)
+
+for p in range(0,len(probes)):
+    plt.plot(Bmag[:,p])
+plt.xlabel('Time')
+plt.ylabel('Magnitude of Magnetic Field [T]')
+plt.title('B Field vs. Time (*lambda = pi*(1.2))')
+plt.legend()
+plt.show()
 ###################################################
 
 

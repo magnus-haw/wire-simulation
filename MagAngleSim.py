@@ -11,8 +11,6 @@ from Engine import MultiWireEngine
 from Wires import Wire,State
 from Utility import biot_savart_SI
 
-import matplotlib.pyplot as plt
-
 ### Dimensional scales
 L = .03 #m
 I = 1. #A
