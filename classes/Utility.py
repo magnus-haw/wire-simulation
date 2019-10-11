@@ -1,8 +1,9 @@
 ### Utility functions
 from numpy import array,zeros,gradient as grad,linalg,cross
-from numpy import newaxis,shape,sqrt
+from numpy import newaxis,shape,sqrt,pi
 from scipy.interpolate import splprep,splev,splrep
 import numpy as np
+mu0=4e-7*pi
 
 def biot_savart(p, I, path, delta=.01):
     '''Given a point, a current and its path, calculates the magnetic field at that point
@@ -10,7 +11,6 @@ def biot_savart(p, I, path, delta=.01):
         e.g. positions are normalized by a radial length scale r~(r'/L0)
              current is normalized to a characteristic value I~(I'/I0)
              Bfield is normalized to B~(B'/B0)
-        These non-dimensional scalings are defined in Dimensions.py
     '''
     dl = grad(path, axis=0)
     r = path-p
@@ -33,16 +33,45 @@ def getBField(path, coil_paths, currents, delta=.01):
             B[p,:] += biot_savart(path[p], currents[c], coil_paths[c],delta=delta)
     return B
 
-
 def JxB_force(path,I,B):
     '''
     Given a wire path, a current I and magnetic field B,
     calculates the JxB force at each point
     '''
-    dl = grad(path, axis=0)
+    dl = grad(path, axis=0) #centered differences
     return I*np.cross(dl,B)
 
-def tension_force(path,B):
+def inductance(path1,path2,rwire=0.001):
+    '''
+    Given two wire paths, calculates the mutual inductance M_12
+    Uses SI units
+    '''
+    dl1 = grad(path1, axis=0) #centered differences
+    dl2 = grad(path2, axis=0) #centered differences
+    L = 0
+    for i in range(0,len(path1)):        
+        for j in range(0,len(path2)):
+            dd = sqrt( ((path1[i] - path2[j])**2).sum() )
+            if dd > rwire/2.:
+                L+=np.dot(dl1[i],dl2[j])/dd
+    return mu0*L/(4*pi)
+      
+def tension_force(wire):
+    '''
+    Calculates tension force from 3D curve properties
+    '''
+    T,CumLen,dl,N,R,tck,s = wire.get_3D_curve_params()
+    vol = np.pi*wire.r*wire.r*dl
+    Lsq = CumLen[-1]**2
+    ft = vol*(wire.Bp*wire.Bp/R)*((Lsq - wire.L_init**2)/Lsq)*N.T
+    return ft.T
+
+def tension_force1(R,N,L,L0,Phi,a,dl):
+    ## tension force
+    ft = dl*(Phi*Phi/(pi*a*a*2*mu0*R))*((L*L-L0*L0)/L/L)*N.T
+    return ft.T
+
+def tension_force0(path,B):
     '''
     Given a path, shape(n,3), and a B-field magnitude,
     calculates magnetic tension force from path curvature
@@ -53,11 +82,6 @@ def tension_force(path,B):
     
     ## tension force
     ft = B*B*(1/R)*rhat.T/mu0
-    return ft.T
-
-def tension_force1(R,N,L,L0,Phi,a,dl):
-    ## tension force
-    ft = dl*(Phi*Phi/(pi*a*a*2*mu0*R))*((L*L-L0*L0)/L/L)*N.T
     return ft.T
 
 ### Use cubic splines to calculate path derivatives
@@ -139,7 +163,7 @@ def divergence(Bx,By,Bz,dx,dy,dz):
     
     return ret
 
-def smooth(x,window_len=10,window='hanning'):
+def smooth(x,window_len=11,window='hanning'):
     """smooth the data using a window with requested size.
     
     This method is based on the convolution of a scaled window with the signal.
@@ -188,6 +212,16 @@ def smooth(x,window_len=10,window='hanning'):
         w=eval('np.'+window+'(window_len)')
 
     y=np.convolve(w/w.sum(),s,mode='valid')
-    ret = y[(int(window_len/2)-1):-int(window_len/2)]
+    print(len(x),len(y),window_len)
+    ret = y[int((window_len-1)/2):-int(window_len/2)]
     #print(len(x),len(ret))
     return ret
+
+def smooth3DVectors(vc,n=5):
+    print(np.shape(vc))
+    x,y,z = vc[:,0],vc[:,1],vc[:,2]
+    xs = smooth(x,window_len=n)
+    ys = smooth(y,window_len=n)
+    zs = smooth(z,window_len=n)
+    vc[:,0],vc[:,1],vc[:,2] = xs,ys,zs
+    return vc
