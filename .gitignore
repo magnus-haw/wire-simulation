@@ -105,3 +105,4 @@ venv.bak/
 
 #personal stuff
 papers/
+*.pickle

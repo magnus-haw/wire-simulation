@@ -41,10 +41,11 @@ def JxB_force(path,I,B):
     dl = grad(path, axis=0) #centered differences
     return I*np.cross(dl,B)
 
-def inductance(path1,path2,rwire=0.001):
+def inductance(path1,path2,rwire=0.001,norm=None):
     '''
-    Given two wire paths, calculates the mutual inductance M_12
-    Uses SI units
+    Given two wire paths, calculates the mutual inductance in SI units
+    taken from: Advanced Electromagnetics. 2016;5(1)
+    DOI 10.7716/aem.v5i1.331 
     '''
     dl1 = grad(path1, axis=0) #centered differences
     dl2 = grad(path2, axis=0) #centered differences
@@ -54,7 +55,10 @@ def inductance(path1,path2,rwire=0.001):
             dd = sqrt( ((path1[i] - path2[j])**2).sum() )
             if dd > rwire/2.:
                 L+=np.dot(dl1[i],dl2[j])/dd
-    return mu0*L/(4*pi)
+    if norm is None:
+        return mu0*L/(4*pi)
+    else:
+        return mu0*L/(4*pi)/norm
       
 def tension_force(wire):
     '''
