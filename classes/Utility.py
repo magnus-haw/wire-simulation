@@ -1,7 +1,7 @@
 ### Utility functions
 from numpy import array,zeros,gradient as grad,linalg,cross
 from numpy import newaxis,shape,sqrt,pi
-from scipy.interpolate import splprep,splev,splrep
+from scipy.interpolate import splprep,splev,splrep,griddata
 import numpy as np
 mu0=4e-7*pi
 
@@ -12,7 +12,7 @@ def biot_savart(p, I, path, delta=.01):
              current is normalized to a characteristic value I~(I'/I0)
              Bfield is normalized to B~(B'/B0)
     '''
-    dl = grad(path, axis=0)
+    dl = grad(path, axis=0) #centered differences
     r = path-p
     rmag = linalg.norm(r, axis=1)
     rmag[rmag<= delta] = 1e6
@@ -21,16 +21,27 @@ def biot_savart(p, I, path, delta=.01):
     B *= I/2.
     return B
 
-def getBField(path, coil_paths, currents, delta=.01):
+##def getBField(path, coil_paths, currents, delta=.01):
+##    '''
+##    Given the path of the loop, a list of coil paths (current paths), and
+##    a list of current magnitudes, returns B field at points along path
+##    '''
+##    n = len(path)
+##    B = zeros((n, 3))
+##    for p in range(n):
+##        for c in range(len(coil_paths)):
+##            B[p,:] += biot_savart(path[p], currents[c], coil_paths[c],delta=delta)
+##    return B
+
+def getBField(path, wires):
     '''
-    Given the path of the loop, a list of coil paths (current paths), and
-    a list of current magnitudes, returns B field at points along path
+    Given a path & a list of wires, returns B field at points along path
     '''
     n = len(path)
     B = zeros((n, 3))
     for p in range(n):
-        for c in range(len(coil_paths)):
-            B[p,:] += biot_savart(path[p], currents[c], coil_paths[c],delta=delta)
+        for wire in wires:
+            B[p,:] += biot_savart(path[p], wire.I, wire.p,delta=wire.r)
     return B
 
 def JxB_force(path,I,B):
@@ -167,6 +178,41 @@ def divergence(Bx,By,Bz,dx,dy,dz):
     
     return ret
 
+def get_rect_grid(x,y,z,n):
+    '''
+    Inputs: x,y,z -> initial positions
+            n -> minimum number of points/dimension
+
+    Returns: X,Y,Z -> 3D rectangular arrays covering full space of inital values 
+    '''
+    x,y,z = np.array(x),np.array(y),np.array(z)
+    ###resample input point volume to regular grid
+    dx,dy,dz = x.max()-x.min(),y.max()-y.min(),z.max()-z.min()
+    dmin = min(dx,dy,dz)
+    
+    nx = complex(0, int(n*dx/dmin) )
+    ny = complex(0, int(n*dy/dmin) )
+    nz = complex(0, int(n*dz/dmin) ) ### imaginary part lets mgrid interpolate between max,min
+    X,Y,Z = np.mgrid[x.min():x.max():nx,y.min():y.max():ny,z.min():z.max():nz]
+    dx,dy,dz = X[1,0,0]-X[0,0,0],Y[0,1,0]-Y[0,0,0],Z[0,0,1]-Z[0,0,0]
+
+    return X,Y,Z,dx,dy,dz
+
+def interpolate3D(X,Y,Z,Jx,Jy,Jz,xp,yp,zp,sf=1,fill_value=0.):
+    '''
+    Inputs: X,Y,Z -> arrays of input positions, arbitrary shape
+            Jx,Jy,Jz -> vector values, must have same shape as X,Y,Z
+            xp,yp,zp -> positions at which to interpolate
+            sf  -> scale factor: use every sf'th point for interpolation
+
+    Returns: 3D interpolated values at X,Y,Z positions
+    '''
+    Jx_inter = griddata((X.ravel()[::sf],Y.ravel()[::sf],Z.ravel()[::sf]),Jx.ravel()[::sf],(xp,yp,zp),fill_value=0.)
+    Jy_inter = griddata((X.ravel()[::sf],Y.ravel()[::sf],Z.ravel()[::sf]),Jy.ravel()[::sf],(xp,yp,zp),fill_value=0.)
+    Jz_inter = griddata((X.ravel()[::sf],Y.ravel()[::sf],Z.ravel()[::sf]),Jz.ravel()[::sf],(xp,yp,zp),fill_value=0.)
+    
+    return Jx_inter,Jy_inter,Jz_inter
+
 def smooth(x,window_len=11,window='hanning'):
     """smooth the data using a window with requested size.
     
@@ -216,16 +262,17 @@ def smooth(x,window_len=11,window='hanning'):
         w=eval('np.'+window+'(window_len)')
 
     y=np.convolve(w/w.sum(),s,mode='valid')
-    print(len(x),len(y),window_len)
+    #print(len(x),len(y),window_len)
     ret = y[int((window_len-1)/2):-int(window_len/2)]
     #print(len(x),len(ret))
     return ret
 
 def smooth3DVectors(vc,n=5):
-    print(np.shape(vc))
+    #print(np.shape(vc))
     x,y,z = vc[:,0],vc[:,1],vc[:,2]
     xs = smooth(x,window_len=n)
     ys = smooth(y,window_len=n)
     zs = smooth(z,window_len=n)
-    vc[:,0],vc[:,1],vc[:,2] = xs,ys,zs
-    return vc
+    vcs = vc.copy()
+    vcs[:,0],vcs[:,1],vcs[:,2] = xs,ys,zs
+    return vcs

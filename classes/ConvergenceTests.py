@@ -45,7 +45,8 @@ plt.xlabel('Distance from Wire')
 plt.title('Straight wire convergence test')
 plt.show()
 
-
+wr.show()
+mlab.show()
 
 
 

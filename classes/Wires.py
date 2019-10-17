@@ -56,10 +56,12 @@ class Wire(object):
             print("Wire initialization error: incorrect shape of input arrays")
 
     def smooth(self):
-        self.p = smooth3DVectors(self.p,n=5)
-        self.v = smooth3DVectors(self.v,n=5)
+        newp = smooth3DVectors(self.p,n=5)
+        newv = smooth3DVectors(self.v,n=5)
+        self.p[2:-2,:] = newp[2:-2,:]
+        self.v[2:-2,:] = newv[2:-2,:]
         
-    def interpolate(self,constant_density=None):
+    def interpolate(self,constant_density=None,smooth=False):
         # calculate length
         length_param = np.cumsum(np.linalg.norm(np.diff(self.p,axis=0),axis=1))
         length_param = np.append(0,length_param)
@@ -154,7 +156,7 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
 
-    def show(self):
+    def show(self,forces=None,velocity=False):
         if self.is_fixed:
             cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
             mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
@@ -162,13 +164,20 @@ class Wire(object):
             cl = (1,0,0.) # red color for flux ropes
             # 3D tube representation of path
             #
-            #mlab.points3d(self.p[:,0], self.p[:,1], self.p[:,2], color=cl)
+            mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
 
-            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
-            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
-            #tube.filter.vary_radius = 'vary_radius_by_scalar'
-            mlab.pipeline.surface(tube)
-            
+##            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
+##            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
+##            #tube.filter.vary_radius = 'vary_radius_by_scalar'
+##            mlab.pipeline.surface(tube)
+
+        if forces is not None:
+            print(np.shape(forces),np.shape(self.p))
+            mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],forces[:,0], forces[:,1], forces[:,2])
+        if velocity:
+            vecs= mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],self.v[:,0], self.v[:,1], self.v[:,2])
+            vecs.glyph.glyph.scale_factor = 2.0
+    
     def __repr__(self):
         T,L,dl,N,R,tck,s = self.get_3D_curve_params()
         return "initial length {0}\nCurrent length {1}\nMax Rcurv {2}\nMin Rcurv {3}".format(self.L_init,L,R.max(),R.min())

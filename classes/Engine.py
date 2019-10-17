@@ -1,7 +1,8 @@
 ### Wire simulation, quasi-static approx
 import abc
 
-from numpy import array, zeros, cross, gradient as grad,linalg,pi,sin
+from numpy import array, zeros, cross, gradient as grad, linalg,pi,sin
+from numpy import reshape,shape
 
 from Utility import getBField, get_R, get_normal,smooth
 from Utility import JxB_force,tension_force,smooth3DVectors
@@ -56,8 +57,32 @@ class AbstractEngine(object):
 
 class MultiWireEngine(AbstractEngine):
     '''Simulator engine for multiple wires'''
-    delta=.01
-    
+
+    def getB(self,X,Y,Z):
+        """Get B-field at arbitrary points using Biot-Savart"""
+        paths = [wire.p for wire in self.state.items]
+        currents = [wire.I for wire in self.state.items]
+        mesh_shape = shape(X)
+        
+        # init points array in proper shape
+        x,y,z = X.ravel(order='C'),Y.ravel(order='C'),Z.ravel(order='C')
+        n = len(x)
+        points = zeros((n,3))
+        points[:,0]=x
+        points[:,1]=y
+        points[:,2]=z
+
+        # Calculate B-field at each point
+        B = getBField(points,self.state.items)
+
+        # Reshape into original mesh matrix
+        Bx,By,Bz = B[:,0],B[:,1],B[:,2]
+        BXi = reshape(Bx,mesh_shape,order='C')
+        BYi = reshape(By,mesh_shape,order='C')
+        BZi = reshape(Bz,mesh_shape,order='C')
+
+        return BXi,BYi,BZi
+        
     def forceScheme(self):
         """Force calculation using Biot-Savart B-field calc"""
         forces = []
@@ -65,7 +90,7 @@ class MultiWireEngine(AbstractEngine):
         currents = [wire.I for wire in self.state.items]
         for wire in self.state.items:
             if not wire.is_fixed:
-                B = getBField(wire.p,paths,currents,delta=wire.r)
+                B = getBField(wire.p,self.state.items)
                 JxB = JxB_force(wire.p,wire.I,B)
                 
                 F = JxB #+ tension_force(wire)
@@ -73,9 +98,9 @@ class MultiWireEngine(AbstractEngine):
                 ###Fixed footpoints
                 F[0:2,:] = 0
                 F[-2:,:] = 0
+                F = smooth3DVectors(F,n=10)
             else:
                 F = None
-            F = smooth3DVectors(F)
             forces.append(F)
         return forces        
     

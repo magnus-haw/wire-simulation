@@ -1,3 +1,11 @@
+#############################################################
+'''
+Script demonstrating the Bfield plotting capability:
+   Shows the transitioning magnetic field for a stationary
+   loop with increasing current in a dipole background field
+'''
+#############################################################
+
 import numpy as np
 import mayavi.mlab as mlab
 import sys,os
@@ -75,72 +83,47 @@ coil1 = Wire(path1,path1*0,mass,1,is_fixed=True,r=r)
 
 ############### Create intial state ##############
 st = State('single_loop_test',load=0)
-st.items.append(wr)
 st.items.append(coil0)
 st.items.append(coil1)
-
+st.items.append(wr)
 #st.save()
 ##################################################
 
 
-########## Specify Boundary Conditions ###########
-def BC(state):
-    ### Boundary conditions
-    for wire in state.items:
-        if not wire.is_fixed:
-            # Update current
-            wire.I = np.sin(state.time * pi/4.)
-            
-            # Fix first and final segments
-            wire.v[0:2,:]= 0.
-            wire.v[-2:,:]= 0.
-
-            # impervious lower boundary
-            r0=0.05
-            wire.v[2:-2,2][wire.p[2:-2,2] < r0] = 0
-            wire.p[2:-2,2][wire.p[2:-2,2] < r0] = r0
-
-            # mass BC
-            wire.m[0,0], wire.m[-1,0] = pi*(wire.r)**3,pi*(wire.r)**3
-            wire.total_mass = wire.m.sum()
-##################################################
-
-
 ############## Run simulation engine #############
-sim = MultiWireEngine(st,dt,bc=BC)
+sim = MultiWireEngine(st,dt)
+X,Y,Z,dx,dy,dz = get_rect_grid([-2,2],[-1,1],[0.3,2],10)
 
-for i in range(0,1700):
-    new_st = sim.advance()
 
-    if i%100 == 0:
-##        new_st.show()
-##        mlab.show()
+for i in range(0,300):
+    st.items[2].I = np.sin(i*pi/600.)
+    sim.state = st
+    bx,by,bz = sim.getB(X,Y,Z)
+    st.show()
+    Bsrc = mlab.pipeline.vector_field(X,Y,Z,bx,by,bz)
+    Bmag = mlab.pipeline.extract_vector_norm(Bsrc)
+    ##iso = mlab.pipeline.iso_surface(Bmag, opacity=0.3)
+    ##vec = mlab.pipeline.vectors(Bsrc,scale_factor=1)
+    streamline = mlab.pipeline.streamline(Bmag, seedtype='plane',
+                                        seed_visible=False,
+                                        seed_resolution=5,
+                                        integration_direction = 'both')
+    streamline.seed.widget.center = np.array([ 1.33226763e-15, -4.17973529e-02,  1.11280360e+00])
+    streamline.seed.widget.normal = np.array([1., 0., 0.])
+    streamline.seed.widget.origin = np.array([ 1.33226763e-15, -9.04779744e-01,  2.96643737e-01])
+    streamline.seed.widget.point1 = np.array([1.33226763e-15, 8.21185039e-01, 2.96643737e-01])
+    streamline.seed.widget.point2 = np.array([ 1.33226763e-15, -9.04779744e-01,  1.92896347e+00])
+    streamline.seed.widget.enabled = True
 
-        print(new_st.time,new_st.items[0].I)
-        myloop = new_st.items[0]
-        forces = sim.forceScheme()[0]
-
-        fig = plt.figure(0)
-        plt.plot(forces[:,0],forces[:,2])
-
-        fig = plt.figure(1)
-        plt.plot(myloop.p[:,0],myloop.p[:,2],'o-')
-plt.show()
+    fig = mlab.gcf()
+    fig.scene.z_plus_view()
+    streamline.seed.widget.enabled = False
+    fig.scene.render()
+    mlab.savefig("shear-{:0>4}.png".format(i),size=(500,500),figure=fig)
+##    mlab.show()
+    mlab.clf()
+    
 ##################################################
 
 
-################# Plot Results ###################
-plt.figure(0)
-plt.title("forces")
-forces = sim.forceScheme()[0]
-plt.plot(forces[:,0],forces[:,2])
-
-plt.figure(1)
-plt.title("position")
-wire = sim.state.items[0]
-plt.plot(wire.p[:,0],wire.p[:,2],'bo')
-plt.show()
-
-##new_st.show()
-##mlab.show()
 ##################################################

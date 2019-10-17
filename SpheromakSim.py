@@ -49,7 +49,7 @@ dm = pi*r*r*(loop_len/L0)*rho/n
 
 
 Load_from_file =1
-Time_to_load = 1.00100
+Time_to_load = 1.33000
 ################ Initial Conditions ################
 if not Load_from_file:
     annulus_electrode()
@@ -95,7 +95,7 @@ if not Load_from_file:
         st.items.append(w)
     #st.items.append(coil)
     st.save()
-st.show()
+st.show(velocity=1)
 mlab.show()
 #st.save()
 ##################################################
@@ -109,9 +109,8 @@ def BC(state):
             wire.I = np.sin(state.time * pi/2.)
             wire.r = .15
 
-##            # Smoothing
-##            for i in range(0,6):
-##                wire.smooth()
+            # Smoothing
+            wire.smooth()                
             
             # Fix first and final segments
             wire.v[0:2,:]= 0.
@@ -124,6 +123,12 @@ def BC(state):
             wire.v[2:-2,2][wire.p[2:-2,2] <= r0] = 0
             wire.p[2:-2,2][wire.p[2:-2,2] <= r0] = r0-.0001
 
+            # remove large z velocities
+            wire.v[2:-2,2][wire.v[2:-2,2] <= -r0] = 0
+            wire.v[2:-2,0][wire.v[2:-2,2] > 25] = 0
+            wire.v[2:-2,1][wire.v[2:-2,2] > 25] = 0
+            wire.v[2:-2,2][wire.v[2:-2,2] > 25] = 0
+
             # mass BC
             wire.m[0,0], wire.m[-1,0] = pi*(wire.r)**3, pi*(wire.r)**3
             wire.total_mass = wire.m.sum()
@@ -131,16 +136,18 @@ def BC(state):
 
 ############## Run simulation engine #############
 sim = MultiWireEngine(st,dt,bc=BC)
-for i in range(1,100):
+for i in range(1,550):
     new_st = sim.advance()
+    F = sim.forceScheme()
     if i%1 == 0:
-        print(i,new_st.time,new_st.items[0].I)
-        print(new_st.items[0].v[:,2].max())
+        print(i,new_st.time,new_st.items[0].I,new_st.items[0].p[:,2].max())
+        #new_st.save()
         plt.plot(new_st.items[0].v[:,2])
         plt.show()
-        new_st.show()
+        new_st.show(velocity=True)#,forces=F)
         mlab.show()
-
+new_st.show()
+mlab.show()
 ##################################################
 
 
@@ -148,12 +155,12 @@ for i in range(1,100):
 plt.figure(0)
 plt.title("forces")
 forces = sim.forceScheme()[0]
-plt.plot(forces[:,1],forces[:,2])
+plt.plot(forces[:,0],forces[:,2])
 
 plt.figure(1)
 plt.title("position")
 wire = sim.state.items[0]
-plt.plot(wire.p[:,1],wire.p[:,2],'bo')
+plt.plot(wire.p[:,0],wire.p[:,2],'bo')
 plt.show()
 
 ##new_st.show()
