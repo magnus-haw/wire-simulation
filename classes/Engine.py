@@ -4,7 +4,7 @@ import abc
 from numpy import array, zeros, cross, gradient as grad, linalg,pi,sin
 from numpy import reshape,shape
 
-from Utility import getBField, get_R, get_normal,smooth
+from Utility import getBField, get_R, get_normal,smooth,inductance
 from Utility import JxB_force,tension_force,smooth3DVectors
 from Wires import Wire
 from State import State
@@ -124,6 +124,14 @@ class MultiWireEngine(AbstractEngine):
             new_state.items.append(new_wire)
 
         return new_state
+
+    def getEnergy(self):
+        norm = 1e-7
+        energy =0
+        for wr1 in self.state.items:
+            for wr2 in self.state.items:
+                energy += 0.5*wr1.I*wr2.I*inductance(wr1.p,wr2.p,rwire=wr2.r,norm=norm)
+        return energy
 
     def __repr__(self):
         return "MultiWireEngine\nCurrent state: "+str(self.state)
