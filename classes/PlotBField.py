@@ -7,7 +7,7 @@ Script demonstrating the Bfield plotting capability:
 #############################################################
 
 import numpy as np
-import mayavi.mlab as mlab
+import pyvista as pv
 import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")

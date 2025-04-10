@@ -1,5 +1,5 @@
 import numpy as np
-import mayavi.mlab as mlab
+import pyvista as pv
 from scipy.interpolate import interp1d,splprep,splev
 import matplotlib.pyplot as plt
 
@@ -156,27 +156,52 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
 
-    def show(self,forces=None,velocity=False):
-        if self.is_fixed:
-            cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
-            mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
-        else:
-            cl = (1,0,0.) # red color for flux ropes
-            # 3D tube representation of path
-            #
-            mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
+#     def show(self,forces=None,velocity=False):
+#         if self.is_fixed:
+#             cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
+#             mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
+#         else:
+#             cl = (1,0,0.) # red color for flux ropes
+#             # 3D tube representation of path
+#             #
+#             mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
 
-##            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
-##            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
-##            #tube.filter.vary_radius = 'vary_radius_by_scalar'
-##            mlab.pipeline.surface(tube)
+# ##            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
+# ##            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
+# ##            #tube.filter.vary_radius = 'vary_radius_by_scalar'
+# ##            mlab.pipeline.surface(tube)
+
+#         if forces is not None:
+#             print(np.shape(forces),np.shape(self.p))
+#             mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],forces[:,0], forces[:,1], forces[:,2])
+#         if velocity:
+#             vecs= mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],self.v[:,0], self.v[:,1], self.v[:,2])
+#             vecs.glyph.glyph.scale_factor = 2.0
+    
+    def show(self, forces=None, velocity=False, plotter=None):
+        if plotter is None:
+            plotter = pv.Plotter()
+
+        if self.is_fixed:
+            cl = (0.84765625, 0.5625, 0.34375)  # copper color for stationary coils
+        else:
+            cl = (1, 0, 0)  # red color for flux ropes
+
+        # Create a tube around the path
+        line = pv.Spline(self.p, len(self.p)*10)  # smooths out the path
+        tube = line.tube(radius=self.r)
+        plotter.add_mesh(tube, color=cl)
 
         if forces is not None:
-            print(np.shape(forces),np.shape(self.p))
-            mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],forces[:,0], forces[:,1], forces[:,2])
+            print(np.shape(forces), np.shape(self.p))
+            arrows = pv.Arrow(start=self.p, direction=forces, scale="auto")
+            # alternatively, use `add_arrows` for batch arrow creation
+            plotter.add_arrows(self.p, forces, mag=1.0, color='blue')
+
         if velocity:
-            vecs= mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],self.v[:,0], self.v[:,1], self.v[:,2])
-            vecs.glyph.glyph.scale_factor = 2.0
+            plotter.add_arrows(self.p, self.v, mag=2.0, color='green')
+
+        return plotter
     
     def __repr__(self):
         T,L,dl,N,R,tck,s = self.get_3D_curve_params()
