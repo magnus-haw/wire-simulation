@@ -7,7 +7,7 @@ sys.path.append(cwd + "/classes/")
 sys.path.append(cwd + "/Dropbox/mylib/")
 
 from makeMovie import Frame,FrameList
-from Constants import mu0, pi, Kb,amu,mass_elec,elec
+from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
 from Engine import MultiWireEngine
 from Wires import Wire
 from State import State

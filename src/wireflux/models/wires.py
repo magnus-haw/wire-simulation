@@ -89,50 +89,6 @@ class Wire(object):
         # reinterpolate velocity
         fv = interp1d(length_param, self.v, kind='cubic',axis=0)
         self.v = fv(lp)
-
-##    def sparse_interpolate(self,rfactor=20):
-##        #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
-##        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
-##        new_s = []
-##        new_mass = []
-##        new_vel = []
-##
-##        # loops through intervals 
-##        for i in range(0,len(self.p)):
-##            new_s.append(s[i])
-##            new_mass.append(self.m[i])
-##            new_vel.append(self.v[i])
-##
-##            # adds new point if spacing interval larger than
-##            #  some factor of the radius of curvature
-##            if i < len(self.p)-1:
-##                #dl[0] == 0 for integration purposes, hence index offset for dl array 
-##                if (dl[i+1] > R[i]/rfactor or dl[i+1] > 3*self.r) and dl[i+1]/2. > self.r:
-##                    new_s.append((s[i]+s[i+1])/2.)
-##                    new_mass.append(0.)
-##                    new_vel.append(0.)
-##                    
-##        nn = len(new_s)
-##
-##        # interpolate positions
-##        self.p = np.zeros((nn,3))
-##        self.p[:,0],self.p[:,1],self.p[:,2] = splev(new_s,tck)
-##
-##        # interpolate mass and velocity (conserves mass/momentum)
-##        self.m,self.v = np.zeros((nn,1)),np.zeros((nn,3))
-##        for i in range(0,nn):
-##            self.m[i] += new_mass[i]
-##            self.v[i] = new_vel[i]
-##            if new_mass[i] ==0:
-##                self.v[i] = (new_mass[i-1]*new_vel[i-1] + new_mass[i+1]*new_vel[i+1])/(new_mass[i-1]+new_mass[i+1])
-##                self.m[i] = (new_mass[i-1] + new_mass[i+1])/4.
-##                
-##                self.m[i-1] -= new_mass[i-1]/4. 
-##                self.m[i+1] -= new_mass[i+1]/4.
-##
-##        #print(len(self.m), self.m.sum(), (self.m * self.v).sum(axis=0))
-####        T,L,dl,N,R,tck,s = self.get_3D_curve_params()
-####        print(dl[1:-1].max())
         
     def get_3D_curve_params(self):
         """ Uses cubic splines to calculate path derivatives, length"""
@@ -155,28 +111,6 @@ class Wire(object):
 
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
-
-#     def show(self,forces=None,velocity=False):
-#         if self.is_fixed:
-#             cl = (0.84765625,0.5625,0.34375) #copper color for stationary coils
-#             mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
-#         else:
-#             cl = (1,0,0.) # red color for flux ropes
-#             # 3D tube representation of path
-#             #
-#             mlab.plot3d(self.p[:,0], self.p[:,1], self.p[:,2], tube_radius=self.r, color=cl)
-
-# ##            line = mlab.pipeline.line_source(self.p[:,0], self.p[:,1], self.p[:,2], self.m[:,0])
-# ##            tube = mlab.pipeline.tube(line, tube_radius=self.r, tube_sides=10)
-# ##            #tube.filter.vary_radius = 'vary_radius_by_scalar'
-# ##            mlab.pipeline.surface(tube)
-
-#         if forces is not None:
-#             print(np.shape(forces),np.shape(self.p))
-#             mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],forces[:,0], forces[:,1], forces[:,2])
-#         if velocity:
-#             vecs= mlab.quiver3d(self.p[:,0], self.p[:,1], self.p[:,2],self.v[:,0], self.v[:,1], self.v[:,2])
-#             vecs.glyph.glyph.scale_factor = 2.0
     
     def show(self, forces=None, velocity=False, plotter=None):
         if plotter is None:

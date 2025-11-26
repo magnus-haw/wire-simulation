@@ -1,6 +1,6 @@
 ### CroFT simulation, quasi-static approx
 
-from Constants import mu0, pi
+from src.wireflux.utils.Constants import mu0, pi
 from numpy import array, zeros, arange, shape, abs, ones, matrix,sqrt,exp
 from numpy import diff, mgrid, cos, sin, log, newaxis, linalg, cross,arccos
 from numpy import concatenate, arcsin,arctan2,linspace
@@ -12,53 +12,15 @@ blue = (0.34765625,0.5625,0.84375)
 copper= (0.84765625,0.5625,0.34375)
 grey = (107/256.,109/256.,110/256.)
 ceramic = (235./256,239./256,240./256)
-def electrode1(phi0):
+def torus(pos,r,R):
     radius = 3.5*.0254 #meters
-    dr, dtheta = radius/25.0, pi/25.0
-    [r,theta] = mgrid[0:radius+dr*.5:dr,0:pi+dtheta*.5:dtheta]
-    x = r*cos(theta)
-    y = r*sin(theta)
-    z = 0*theta + .0254/8.
-    l,m = shape(x)
-    for i in range(0,l):
-        for j in range(0,m):
-                if y[i,j] < 3./16. *.0254:
-                    y[i,j] = 3./16. *.0254
-    xp = x*cos(phi0) - y*sin(phi0)
-    yp = x*sin(phi0) + y*cos(phi0)
-    mlab.mesh(xp, yp, z, color=blue)
-    mlab.mesh(xp, yp, z*0, color=blue)
-
-    xmax = (radius**2. - (.0254*3./16)**2.)**.5
-
-    dz = .0254/8.
-    dx = xmax
-    [x,z] = mgrid[-xmax:xmax+dx*.5:dx,0:.0254/8.+.5*dz:dz]
-    y = x*0 + .0254*3./16.
-    xp = x*cos(phi0) - y*sin(phi0)
-    yp = x*sin(phi0) + y*cos(phi0)
-    mlab.mesh(xp, yp, z, color=blue)
-
-    phi = arcsin(.0254*3./16./radius)
-    [z,theta] = mgrid[0:.0254/8.+.5*dz:dz,phi:pi-phi +dtheta*.5:dtheta]
-    x = radius*cos(theta+phi0)
-    y = radius*sin(theta+phi0)
-    mlab.mesh(x, y, z, color=blue)
-
-    radius = .323*.0254 #meters
-    dr, dtheta = radius/250.0, pi/250.0
-    [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
-    x = r*cos(theta)
-    y = r*sin(theta)+2.*.0254
-    xp = x*cos(phi0) - y*sin(phi0)
-    yp = x*sin(phi0) + y*cos(phi0)
-    z = 0*theta + .0254/8.+.0001
-    mlab.mesh(xp, yp, z, color=(0,0,0))
-
-    y0=2.*.0254
-    x = -y0*sin(phi0)
-    y = y0*cos(phi0)
-    return array([x,y])
+    dphi, dtheta = pi/25.0, pi/25.0
+    [phi,theta] = mgrid[0:2*pi+dphi*.5:dphi,0:2*pi+dtheta*.5:dtheta]
+    x =  r*sin(theta) + pos[0]
+    y = (R+r*cos(theta))*sin(phi) + pos[1]
+    z = (R+r*cos(theta))*cos(phi) + pos[2]
+    
+    mlab.mesh(x, y, z, color=copper)
 
 def electrode2(phi0):
     radius = 3.5*.0254 #meters
@@ -326,7 +288,6 @@ def show_plasma(posA,posB):
         tube.filter.vary_radius = 'vary_radius_by_scalar'
         mlab.pipeline.surface(tube, color=(1,0,0))
 
-
 def plot_all(plot_candelabra=True,plot_loops=False):
     '''Plot electrodes'''
 
@@ -346,117 +307,8 @@ def plot_all(plot_candelabra=True,plot_loops=False):
         show_plasma([loop_A_lower_pos,loop_A_upper_pos],[loop_B_lower_pos,loop_B_upper_pos])
     return [loop_A_lower_pos,loop_A_upper_pos],[loop_B_lower_pos,loop_B_upper_pos]
 
-######################
-### Coil Parameters###
-######################
-theta = arange(0,20*pi,pi/100.)
-coil_R = .04445 #coil major radius
-ypos = .0879    #m above electrodes
-z_pitch = .01016# z travel per loop
-dx = 0 #x offset of coils
-
-#left coil
-left_coil = array([z_pitch*theta/(2.*pi) + .1049, coil_R*cos(theta)+dx,coil_R*sin(theta) + ypos, ]).T
-#right coil
-right_coil = array([-z_pitch*theta/(2.*pi) - .1049, coil_R*cos(theta)+dx,-coil_R*sin(theta) + ypos, ]).T
-
 
 if __name__ == "__main__":
-    ##lower electrode +
-    b1 = electrode2(phi0)
-    path = get_stuff_coil(dx=b1[0], dy=b1[1],r= .02, d=.08, nturns=12)
-    mlab.plot3d(path[:,0], path[:,1], path[:,2], tube_radius=.002,
-                        color=copper)
-    radius = 1.4*.0254
-    d = .04
-    dz, dtheta = (d)/5.0, pi/50.0
-    [z,theta] = mgrid[-d:0+dz:dz,0:2*pi+dtheta*.5:dtheta]
-    x = radius*cos(theta) + b1[0]
-    y = radius*sin(theta) + b1[1]
-    mlab.mesh(x, y, z, color=copper)
-    
-    radius = .003
-    d = 4.15*.0254
-    dz, dtheta = (d)/5.0, pi/50.0
-    [z,theta] = mgrid[-d:0+dz:dz,0:2*pi+dtheta*.5:dtheta]
-    x = radius*cos(theta)+ b1[0]
-    y = radius*sin(theta)+ b1[1]
-    mlab.mesh(x, y, z, color=grey)
-    
-    ##B-field background
-    m=-1;x0=b1[0];y0=b1[1]
-    X, Y, Z = mgrid[-24:24,-24:24,0:45]/200. # meters
-    rho = sqrt((X-x0)**2 + (Y-y0)**2)
-    
-    r1 = sqrt(rho**2 + Z**2) 
-    Bx = 3*(X-x0)* m*Z/(r1**5)
-    By = 3*(Y-y0)* m*Z/(r1**5)
-    Bz = 3*Z* m*Z/(r1**5) - m/(r1**3)
-    
-    ##density cone
-    cones = ((.01/(.01+Z))**2 )*exp(-1.15*rho*rho/((.01+Z)**2))
-    
-    ##Upper electrode
-    b0 = electrode1(phi0)
-    path = get_stuff_coil(dx=b0[0], dy=b0[1],r= .02, d=.08, nturns=12)
-    mlab.plot3d(path[:,0], path[:,1], path[:,2], tube_radius=.002,
-                        color=blue)
-    radius = 1.4*.0254
-    d = .04
-    dz, dtheta = (d)/5.0, pi/50.0
-    [z,theta] = mgrid[-d:0+dz:dz,0:2*pi+dtheta*.5:dtheta]
-    x = radius*cos(theta) + b0[0]
-    y = radius*sin(theta) + b0[1]
-    mlab.mesh(x, y, z, color=blue)
-    
-    radius = .003
-    d = 4.15*.0254
-    dz, dtheta = (d)/5.0, pi/50.0
-    [z,theta] = mgrid[-d:0+dz:dz,0:2*pi+dtheta*.5:dtheta]
-    x = radius*cos(theta) + b0[0]
-    y = radius*sin(theta) + b0[1]
-    mlab.mesh(x, y, z, color=grey)
-    
-    ##B-field background
-    m=1;x0=b0[0];y0=b0[1]
-    rho = sqrt((X-x0)**2 + (Y-y0)**2)
-    
-    r1 = sqrt(rho**2 + Z**2) 
-    Bx += 3*(X-x0)* m*Z/(r1**5)
-    By += 3*(Y-y0)* m*Z/(r1**5)
-    Bz += 3*Z* m*Z/(r1**5) - m/(r1**3)
-    
-    Bsrc = mlab.pipeline.vector_field(X,Y,Z,Bx,By,Bz)
-    Bmag = mlab.pipeline.extract_vector_norm(Bsrc)
-    
-    ##density cone
-    cones += ((.01/(.01+Z))**2 )*exp(-1.15*rho*rho/((.01+Z)**2))
-    
-    ##plot fieldlines    
-    flow = mlab.pipeline.streamline(Bmag, seedtype='plane',
-                                    seed_visible=True,
-                                    seed_resolution=3,
-                                    integration_direction = 'both')
-    ##plot density cones         
-    src = mlab.pipeline.scalar_field(X,Y,Z,log(cones+.01))
-    mlab.pipeline.iso_surface(src, contours=[-4.36,-4.2,-4,-3.5,-3,-2,-1,-.5], opacity=0.2)
-    #mlab.pipeline.iso_surface(src, contours=[cones.max()*.01], opacity=0.5)
-    #iso = mlab.pipeline.iso_surface(X,Y,Z,cones)
-
-    ### Circle path
-    n=100;theta = linspace(0,pi,n)
-    r0 = .01 #meters
-    start,end = array(b1),array(b0)
-    pvec = end-start
-    st = zeros(3)
-    st[0:2] = end
-    R0 = linalg.norm(pvec)/2.
-    y,z = R0*cos(theta),R0*sin(theta)
-    yaxis,zaxis = zeros((3,1)),zeros((3,1))
-    yaxis[1,0],zaxis[2,0] = pvec[1]/(R0*2), 1.
-    yaxis[0,0] = pvec[0]/(R0*2)
-
-    ppath = ((y-y[0])*yaxis + z*zaxis).T + st
-
-    mlab.plot3d(ppath[:,0], ppath[:,1], ppath[:,2], tube_radius=r0, color=(1,0,0))
+    for xpos in [.11,.14,.17,2.68,2.71,2.74]:
+        torus([xpos,0,0],.0075,.1)
     mlab.show()

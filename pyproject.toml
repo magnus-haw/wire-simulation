@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=67.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wireflux"
+version = "0.1.0"
+description = "Adaptive wire-filament physics engine with Biot–Savart forces and curvature-driven remeshing."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+
+authors = [
+  { name = "Magnus Haw", email = "example@example.com" }
+]
+
+keywords = [
+  "physics",
+  "simulation",
+  "wire",
+  "filament",
+  "biotsavart",
+  "electromagnetics",
+  "adaptive-remeshing",
+  "curvature",
+  "mhd",
+  "geometry-processing"
+]
+
+dependencies = [
+  "numpy>=1.20",
+  "scipy>=1.8",
+  "matplotlib>=3.5",
+  "mayavi>=4.7 ; platform_system == 'Linux'",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["wireflux*"]
+
+[project.urls]
+homepage = "https://github.com/YOUR_GITHUB/wireflux"
+documentation = "https://YOUR_DOCS_URL"
+repository = "https://github.com/YOUR_GITHUB/wireflux"
+issues = "https://github.com/YOUR_GITHUB/wireflu_

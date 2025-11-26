@@ -7,13 +7,13 @@ Script demonstrating the Bfield plotting capability:
 #############################################################
 
 import numpy as np
-import pyvista as pv
+import mayavi.mlab as mlab
 import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
 from Utility import get_rect_grid
-from Constants import mu0, pi, Kb,amu,mass_elec,elec
+from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
 from Engine import MultiWireEngine
 from Wires import Wire
 from State import State
@@ -68,25 +68,11 @@ wr = Wire(path,path*0,mass,I,r=r,Bp=1,is_fixed=False)
 ##################################################
 
 
-################ Footpoint coils #################
-### Initialize path
-phi = np.linspace(0.,2*pi,50)
-path0 = np.array([(L/2)*np.cos(phi)-L,(L/2)*np.sin(phi),0*phi-.1]).T
-path1 = np.array([(L/2)*np.cos(phi)+L,(L/2)*np.sin(phi),0*phi-.1]).T
-### Initialize mass
-mass = np.ones((len(path0),1))
-### Create coils 
-coil0 = Wire(path0,path0*0,mass,-1,is_fixed=True,r=r)
-coil1 = Wire(path1,path1*0,mass,1,is_fixed=True,r=r)
-##################################################
 
 
 ############### Create intial state ##############
 st = State('single_loop_test',load=0)
-st.items.append(coil0)
-st.items.append(coil1)
 st.items.append(wr)
-#st.save()
 ##################################################
 
 
@@ -95,7 +81,7 @@ sim = MultiWireEngine(st,dt)
 X,Y,Z,dx,dy,dz = get_rect_grid([-2,2],[-1,1],[0.3,2],10)
 
 
-for i in range(0,300):
+for i in [0,0,0]:
     st.items[2].I = np.sin(i*pi/600.)
     sim.state = st
     bx,by,bz = sim.getB(X,Y,Z)

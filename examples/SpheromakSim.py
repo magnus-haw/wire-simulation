@@ -4,7 +4,7 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from Constants import mu0, pi, Kb,amu,mass_elec,elec
+from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
 from Engine import MultiWireEngine
 from Wires import Wire
 from State import State

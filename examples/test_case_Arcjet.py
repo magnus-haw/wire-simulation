@@ -4,7 +4,7 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from Constants import mu0, pi, Kb,amu,mass_elec,elec
+from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
 from classes.Wires import Wire
 from classes.State import State
 from classes.Utility import biot_savart,getBField, get_R, get_normal, get_rect_grid
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 ### Dimensional scales
 r0 = 0.0762 #m
 L0 = .0254*1.5 #m
-I0 = 25. #Amps
+I0 = 100. #Amps
 nden0 = 1e21 #m^-3
 rho0 = nden0*amu*40. #kg/m^3
 B0 = I0*mu0/(2*pi*r0) #tesla

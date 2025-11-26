@@ -1,6 +1,6 @@
 ### CroFT simulation, quasi-static approx
 
-from Constants import mu0, pi
+from classes.Constants import mu0, pi
 from numpy import array, zeros, arange, shape, abs, ones, matrix
 from numpy import diff, mgrid, cos, sin, log, newaxis, linalg, cross,arccos
 from numpy import concatenate, arcsin
