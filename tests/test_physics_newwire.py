@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from Wires import Wire
-from NewWires import NewWire
-from Engine import MultiWireEngine
-from Utility import getBField, JxB_force, biot_savart
+from src.wireflux.models.wires import Wire
+from src.wireflux.models.newwires import NewWire
+from src.wireflux.core.engine import MultiWireEngine
+from src.wireflux.utils.utility import getBField, JxB_force, biot_savart
 
 
 ###############################################
@@ -164,7 +164,7 @@ def test_inductance_symmetry(WireClass):
     and NewWire should match Wire’s inductance.
     """
 
-    from Utility import inductance
+    from src.wireflux.utils.Utility import inductance
 
     N = 200
     t = np.linspace(0, 2*np.pi, N)
@@ -189,7 +189,7 @@ def test_engine_runs_with_both_wire_types():
     Ensure MultiWireEngine can run for several steps with both Wire and NewWire.
     """
 
-    from State import State
+    from src.wireflux.core.State import State
 
     N = 200
     t = np.linspace(0, 2*np.pi, N)

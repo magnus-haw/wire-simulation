@@ -3,7 +3,8 @@ import pyvista as pv
 from scipy.interpolate import interp1d,splprep,splev
 import matplotlib.pyplot as plt
 
-from Utility import smooth3DVectors,inductance
+from ..utils.smooth import smooth3DVectors
+from ..physics.inductance import inductance
 
 class Wire(object):
     """

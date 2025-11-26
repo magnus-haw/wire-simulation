@@ -1,11 +1,11 @@
 import time
 import numpy as np
 
-from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
-from Engine import MultiWireEngine
-from Wires import Wire
-from State import State
-from Utility import getBField,biot_savart,JxB_force
+from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from src.wireflux.core.engine import MultiWireEngine
+from src.wireflux.models.wires import Wire
+from src.wireflux.core.state import State
+from src.wireflux.utils.utility import getBField,biot_savart,JxB_force
 
 import matplotlib.pyplot as plt
 

@@ -1,7 +1,6 @@
 ### Utility functions
-from numpy import array,zeros,gradient as grad,linalg,cross
-from numpy import newaxis,shape,sqrt,pi
-from scipy.interpolate import splprep,splev,splrep,griddata
+from numpy import zeros,gradient as grad,linalg
+from numpy import newaxis,pi
 import numpy as np
 mu0=4e-7*pi
 
@@ -20,3 +19,16 @@ def biot_savart(p, I, path, delta=.01):
     B = sum(np.cross(r,dl) / (rmag**3.)[:,newaxis])
     B *= I/2.
     return B
+
+def getBField(path, wires):
+    '''
+    Given a path & a list of wires, returns B field at points along path
+    '''
+    n = len(path)
+    B = zeros((n, 3))
+    for p in range(n):
+        for wire in wires:
+            B[p,:] += biot_savart(path[p], wire.I, wire.p,delta=wire.r)
+    return B
+
+

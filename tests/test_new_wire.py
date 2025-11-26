@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from Wires import Wire
-from NewWires import NewWire
-from Engine import MultiWireEngine
-from Utility import getBField, biot_savart, smooth3DVectors
+from src.wireflux.models.wires import Wire
+from src.wireflux.models.newwires import NewWire
+from src.wireflux.core.engine import MultiWireEngine
+from src.wireflux.utils.utility import getBField, biot_savart, smooth3DVectors
 
 
 # -------------------------------------------------------------------
@@ -135,8 +135,8 @@ def test_engine_wire_vs_newwire():
     Run a few engine steps and verify that using Wire vs NewWire
     yields comparable energy and motion, even though meshes differ.
     """
-    from Engine import MultiWireEngine
-    from State import State
+    from src.wireflux.core.Engine import MultiWireEngine
+    from src.wireflux.core.State import State
 
     p = make_circle()
     v = np.zeros_like(p)

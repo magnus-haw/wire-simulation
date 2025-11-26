@@ -12,11 +12,11 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from Utility import get_rect_grid
-from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
-from Engine import MultiWireEngine
-from Wires import Wire
-from State import State
+from src.wireflux.utils.utility import get_rect_grid
+from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from src.wireflux.core.engine import MultiWireEngine
+from src.wireflux.models.wires import Wire
+from src.wireflux.core.state import State
 
 import matplotlib.pyplot as plt
 

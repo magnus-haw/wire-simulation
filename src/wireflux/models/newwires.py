@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
-from Utility import smooth3DVectors
-from Wires import Wire
+from ..utils.smooth import smooth3DVectors
+from .wires import Wire
 
 
 class NewWire(Wire):

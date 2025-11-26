@@ -4,11 +4,11 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from classes.Constants import mu0, pi, Kb,amu,mass_elec,elec
-from classes.Wires import Wire
-from classes.State import State
-from classes.Utility import biot_savart,getBField, get_R, get_normal, get_rect_grid
-from classes.Engine import MultiWireEngine
+from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from src.wireflux.models.wires import Wire
+from src.wireflux.core.state import State
+from src.wireflux.utils.utility import biot_savart,getBField, get_R, get_normal, get_rect_grid
+from src.wireflux.core.engine import MultiWireEngine
 
 import matplotlib.pyplot as plt
 

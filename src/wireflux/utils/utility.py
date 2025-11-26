@@ -1,7 +1,7 @@
 ### Utility functions
-from numpy import array,zeros,gradient as grad,linalg,cross
-from numpy import newaxis,shape,sqrt,pi
-from scipy.interpolate import splprep,splev,splrep,griddata
+from numpy import array, zeros, gradient as grad, linalg, cross
+from numpy import newaxis, shape, sqrt, pi, cumsum
+from scipy.interpolate import splprep, splev, splrep, griddata
 import numpy as np
 mu0=4e-7*pi
 
