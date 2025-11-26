@@ -4,11 +4,11 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
-from Engine import MultiWireEngine
-from Wires import Wire
-from State import State
-from electrodes.CroFT_electrodes import plot_all as plot_electrodes
+from wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from wireflux import MultiWireEngine
+from wireflux import Wire
+from wireflux import State
+from wireflux.viz import CroFT_electrodes
 
 import matplotlib.pyplot as plt
 

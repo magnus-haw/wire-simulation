@@ -4,7 +4,8 @@ import pytest
 from src.wireflux.models.wires import Wire
 from src.wireflux.models.newwires import NewWire
 from src.wireflux.core.engine import MultiWireEngine
-from src.wireflux.utils.utility import getBField, JxB_force, biot_savart
+from src.wireflux.physics.biot_savart import getBField, biot_savart
+from src.wireflux.physics.forces import JxB_force
 
 
 ###############################################

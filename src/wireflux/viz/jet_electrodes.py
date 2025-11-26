@@ -1,6 +1,8 @@
-### CroFT simulation, quasi-static approx
-
-from src.wireflux.utils.constants import mu0, pi
+### jet simulation, quasi-static approx
+import numpy as np
+import pyvista as pv
+from wireflux.utils.constants import mu0, pi
+from .load_stl import add_stl_to_plotter
 from numpy import array, zeros, arange, shape, abs, ones, matrix
 from numpy import diff, mgrid, cos, sin, log, newaxis, linalg, cross,arccos
 from numpy import concatenate, arcsin
@@ -10,66 +12,75 @@ import time
 blue  = (0.34765625,0.5625,0.84375)
 copper= (0.84765625,0.5625,0.34375)
 
-def center_electrode():
-    radius = 0.2 #meters
-    dr, dtheta = radius/10.0, pi/10.0
-    [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
-    x = r*cos(theta)
-    y = r*sin(theta) 
-    z = 0*theta + .0254/8.
-    mlab.mesh(x, y, z, color=blue)
-    mlab.mesh(x, y, z*0, color=blue)
+# def _center_electrode():
+#     radius = 0.2 #meters
+#     dr, dtheta = radius/10.0, pi/10.0
+#     [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
+#     x = r*cos(theta)
+#     y = r*sin(theta) 
+#     z = 0*theta + .0254/8.
+#     mlab.mesh(x, y, z, color=blue)
+#     mlab.mesh(x, y, z*0, color=blue)
 
-    dz = .0254/8.
-    [z,theta] = mgrid[0:.0254/8.+.5*dz:dz,0:2*pi+dtheta*.5:dtheta]
-    x = radius*cos(theta)
-    y = radius*sin(theta) 
-    mlab.mesh(x, y, z, color=blue)
+#     dz = .0254/8.
+#     [z,theta] = mgrid[0:.0254/8.+.5*dz:dz,0:2*pi+dtheta*.5:dtheta]
+#     x = radius*cos(theta)
+#     y = radius*sin(theta) 
+#     mlab.mesh(x, y, z, color=blue)
 
-    inners,outers = get_jet_nozzles()
-    for p in inners:
-        radius = .323*.0254 #meters
-        dr, dtheta = radius/10.0, pi/10.0
-        [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
-        x = r*cos(theta)-p[0]
-        y = r*sin(theta)-p[1]
-        z = 0*theta + .0254/8.+.0001
-        mlab.mesh(x, y, z, color=(0,0,0))
+#     inners,outers = get_jet_nozzles()
+#     for p in inners:
+#         radius = .323*.0254 #meters
+#         dr, dtheta = radius/10.0, pi/10.0
+#         [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
+#         x = r*cos(theta)-p[0]
+#         y = r*sin(theta)-p[1]
+#         z = 0*theta + .0254/8.+.0001
+#         mlab.mesh(x, y, z, color=(0,0,0))
 
-    return array([0,9.75*.0254])
+#     return array([0,9.75*.0254])
 
-def annulus_electrode():
-    rin,rout = 0.21,0.5 #meters
-    dr, dtheta = rin/10.0, pi/10.0
+# def _annulus_electrode():
+#     rin,rout = 0.21,0.5 #meters
+#     dr, dtheta = rin/10.0, pi/10.0
 
-    ### top and bottom surfaces
-    [r,theta] = mgrid[rin:rout+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
-    x = r*cos(theta)
-    y = r*sin(theta)
-    z = 0*theta + .0254/8.
-    mlab.mesh(x, y, z, color=copper)
-    mlab.mesh(x, y, z*0, color=copper)
+#     ### top and bottom surfaces
+#     [r,theta] = mgrid[rin:rout+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
+#     x = r*cos(theta)
+#     y = r*sin(theta)
+#     z = 0*theta + .0254/8.
+#     mlab.mesh(x, y, z, color=copper)
+#     mlab.mesh(x, y, z*0, color=copper)
 
-    ### edges
-    dz = .0254/8.
-    for radius in [rin,rout]:
-        [z,theta] = mgrid[0:.0254/8.+.5*dz:dz,0:2*pi+dtheta*.5:dtheta]
-        x = radius*cos(theta)
-        y = radius*sin(theta)
-        mlab.mesh(x, y, z, color=copper)
+#     ### edges
+#     dz = .0254/8.
+#     for radius in [rin,rout]:
+#         [z,theta] = mgrid[0:.0254/8.+.5*dz:dz,0:2*pi+dtheta*.5:dtheta]
+#         x = radius*cos(theta)
+#         y = radius*sin(theta)
+#         mlab.mesh(x, y, z, color=copper)
 
-    inners,outers = get_jet_nozzles()
-    ### Gas ports
-    for p in outers:
-        radius = .323*.0254 #meters
-        dr, dtheta = radius/10.0, pi/10.0
-        [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
-        x = r*cos(theta) - p[0]
-        y = r*sin(theta) - p[1]
-        z = 0*theta + .0254/8.+.0001
-        mlab.mesh(x, y, z, color=(0,0,0))
+#     inners,outers = get_jet_nozzles()
+#     ### Gas ports
+#     for p in outers:
+#         radius = .323*.0254 #meters
+#         dr, dtheta = radius/10.0, pi/10.0
+#         [r,theta] = mgrid[0:radius+dr*.5:dr,0:2*pi+dtheta*.5:dtheta]
+#         x = r*cos(theta) - p[0]
+#         y = r*sin(theta) - p[1]
+#         z = 0*theta + .0254/8.+.0001
+#         mlab.mesh(x, y, z, color=(0,0,0))
 
-    return array([0,-9.75*.0254])
+#     return array([0,-9.75*.0254])
+
+def jet_electrodes():
+    plotter = pv.Plotter()
+    plotter.set_background("white")
+    plotter, mesh1 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_annular_electrode.stl", 
+                                        color=(0.2, 0.4, 0.9))
+    plotter, mesh2 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_inner_elec.stl", 
+                                        color=(0.85, 0.56, 0.34))
+    plotter.show()
 
 def get_jet_nozzles():
     ro = 0.355 #meters
@@ -88,4 +99,14 @@ def get_stuff_coil(dx=0, dy=0, r=1.623*.0254, d=.0254, nturns=4.):
     path = array([r*cos(theta)+dx,r*sin(theta)+dy,-d*theta/(2*pi*nturns)])
     return path
 
-                
+
+if __name__ == "__main__":
+    plotter = pv.Plotter()
+    plotter.set_background("white")
+    plotter, mesh1 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_annular_electrode.stl", 
+                                        color=(0.2, 0.4, 0.9))
+    plotter, mesh2 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_inner_elec.stl", 
+                                        color=(0.85, 0.56, 0.34))
+
+    plotter.show()
+

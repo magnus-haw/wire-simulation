@@ -1,18 +1,21 @@
 ### CroFT simulation, quasi-static approx
 
-from src.wireflux.utils.constants import mu0, pi
+from wireflux.utils.constants import mu0, pi
 from numpy import array, zeros, arange, shape, abs, ones, matrix,sqrt,exp
 from numpy import diff, mgrid, cos, sin, log, newaxis, linalg, cross,arccos
 from numpy import concatenate, arcsin,arctan2,linspace
 import mayavi.mlab as mlab
 import time
+import numpy as np
+import pyvista as pv
 
 phi0 = -2*pi/6.
 blue = (0.34765625,0.5625,0.84375)
 copper= (0.84765625,0.5625,0.34375)
 grey = (107/256.,109/256.,110/256.)
 ceramic = (235./256,239./256,240./256)
-def electrode1(phi0):
+
+def _electrode1(phi0):
     radius = 3.5*.0254 #meters
     dr, dtheta = radius/25.0, pi/25.0
     [r,theta] = mgrid[0:radius+dr*.5:dr,0:pi+dtheta*.5:dtheta]
@@ -59,6 +62,126 @@ def electrode1(phi0):
     x = -y0*sin(phi0)
     y = y0*cos(phi0)
     return array([x,y])
+
+def make_structured_mesh(x, y, z):
+    """
+    Convert 2D x,y,z arrays (m,n) into a PyVista StructuredGrid.
+    VTK expects 3D dims, so we append a dummy depth of 1.
+    """
+    m, n = x.shape
+    grid = pv.StructuredGrid()
+
+    # PyVista needs points in (N, 3) shape
+    pts = np.c_[x.reshape(-1), y.reshape(-1), z.reshape(-1)]
+    grid.points = pts
+
+    # KEY FIX: structured grid dimensions must be (m, n, 1)
+    grid.dimensions = (m, n, 1)
+
+    return grid
+
+
+def electrode1(phi0, plotter=None):
+    import numpy as np
+    import pyvista as pv
+    from numpy import cos, sin, pi, mgrid, arcsin, shape
+
+    blue = (0.34765625, 0.5625, 0.84375)
+
+    if plotter is None:
+        plotter = pv.Plotter()
+        plotter.set_background("white")
+
+    # ---------------------------------------------------------
+    # 1) MAIN D-SHAPED CAP (curved surface + clipped inner flat)
+    # ---------------------------------------------------------
+    radius = 3.5 * 0.0254
+    dr = radius / 25.0
+    dtheta = pi / 25.0
+
+    r, theta = mgrid[0:radius + 0.5*dr:dr, 0:pi + 0.5*dtheta:dtheta]
+    x = r * cos(theta)
+    y = r * sin(theta)
+    z = np.zeros_like(theta) + (0.0254/8.0)
+
+    # clip inside flat region
+    m, n = x.shape
+    for i in range(m):
+        for j in range(n):
+            if y[i, j] < (3.0/16.0)*0.0254:
+                y[i, j] = (3.0/16.0)*0.0254
+
+    # rotate by phi0
+    xp = x*cos(phi0) - y*sin(phi0)
+    yp = x*sin(phi0) + y*cos(phi0)
+
+    grid1 = make_structured_mesh(xp, yp, z)
+    plotter.add_mesh(grid1, color=blue)
+
+    # also add the flat bottom cap (z = 0)
+    grid1b = make_structured_mesh(xp, yp, np.zeros_like(z))
+    plotter.add_mesh(grid1b, color=blue)
+
+    # ---------------------------------------------------------
+    # 2) FLAT BOTTOM RECTANGULAR STRIP
+    # ---------------------------------------------------------
+    xmax = (radius**2 - (0.0254*3.0/16.0)**2)**0.5
+
+    dz = 0.0254/8.0
+    dx = xmax
+
+    x2, z2 = mgrid[-xmax:xmax+0.5*dx:dx, 0:dz+0.5*dz:dz]
+    y2 = x2*0 + (3.0/16.0)*0.0254
+
+    xp2 = x2*cos(phi0) - y2*sin(phi0)
+    yp2 = x2*sin(phi0) + y2*cos(phi0)
+
+    grid2 = make_structured_mesh(xp2, yp2, z2)
+    plotter.add_mesh(grid2, color=blue)
+
+    # ---------------------------------------------------------
+    # 3) SIDE RADIAL ARC SURFACE
+    # ---------------------------------------------------------
+    phi = arcsin((3.0/16.0)*0.0254 / radius)
+    z3, theta3 = mgrid[0:dz+0.5*dz:dz, phi:pi-phi+0.5*dtheta:dtheta]
+
+    x3 = radius * cos(theta3 + phi0)
+    y3 = radius * sin(theta3 + phi0)
+    z3 = z3 + 0.0   # ensure same shape
+
+    grid3 = make_structured_mesh(x3, y3, z3)
+    plotter.add_mesh(grid3, color=blue)
+
+    # ---------------------------------------------------------
+    # 4) SMALL CYLINDER CAP OFFSET IN +Y DIRECTION
+    # ---------------------------------------------------------
+    radius2 = 0.323 * 0.0254
+    dr2 = radius2 / 250.0
+    dtheta2 = 2*pi / 250.0
+
+    r4, theta4 = mgrid[0:radius2+0.5*dr2:dr2, 0:2*pi+0.5*dtheta2:dtheta2]
+    x4 = r4 * cos(theta4)
+    y4 = r4 * sin(theta4) + (2.0 * 0.0254)
+
+    # rotate
+    xp4 = x4*cos(phi0) - y4*sin(phi0)
+    yp4 = x4*sin(phi0) + y4*cos(phi0)
+
+    z4 = np.zeros_like(theta4) + (0.0254/8.0) + 0.0001
+
+    grid4 = make_structured_mesh(xp4, yp4, z4)
+    plotter.add_mesh(grid4, color=(0,0,0))
+
+    # ---------------------------------------------------------
+    # Return the offset pivot point (matching your old code)
+    # ---------------------------------------------------------
+    y0 = 2.0 * 0.0254
+    x_final = -y0 * sin(phi0)
+    y_final =  y0 * cos(phi0)
+
+    return np.array([x_final, y_final]), plotter
+
+
 
 def electrode2(phi0):
     radius = 3.5*.0254 #meters
@@ -362,6 +485,9 @@ right_coil = array([-z_pitch*theta/(2.*pi) - .1049, coil_R*cos(theta)+dx,-coil_R
 
 
 if __name__ == "__main__":
+    a,plotter = electrode1(phi0=-2*np.pi/6)
+    plotter.show()
+
     ##lower electrode +
     b1 = electrode2(phi0)
     path = get_stuff_coil(dx=b1[0], dy=b1[1],r= .02, d=.08, nturns=12)

@@ -5,7 +5,8 @@ from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
 from src.wireflux.core.engine import MultiWireEngine
 from src.wireflux.models.wires import Wire
 from src.wireflux.core.state import State
-from src.wireflux.utils.utility import getBField,biot_savart,JxB_force
+from src.wireflux.physics.biot_savart import getBField,biot_savart
+from src.wireflux.physics.forces import JxB_force
 
 import matplotlib.pyplot as plt
 

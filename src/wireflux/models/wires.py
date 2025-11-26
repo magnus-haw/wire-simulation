@@ -3,8 +3,8 @@ import pyvista as pv
 from scipy.interpolate import interp1d,splprep,splev
 import matplotlib.pyplot as plt
 
-from ..utils.smooth import smooth3DVectors
-from ..physics.inductance import inductance
+from wireflux.utils.smooth import smooth3DVectors
+from wireflux.physics.inductance import inductance
 
 class Wire(object):
     """
@@ -113,7 +113,7 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
     
-    def show(self, forces=None, velocity=False, plotter=None):
+    def _show(self, forces=None, velocity=False, plotter=None):
         if plotter is None:
             plotter = pv.Plotter()
 
@@ -138,6 +138,38 @@ class Wire(object):
 
         return plotter
     
+    def show(self, forces=None, velocity=False, plotter=None):
+
+        if plotter is None:
+            plotter = pv.Plotter()
+
+        # Set color per wire type
+        if self.is_fixed:
+            cl = 'sienna'  # copper
+        else:
+            cl = 'red'  # red
+
+        # Create smoothed line and tube
+        line = pv.Spline(self.p, len(self.p)*10)
+        tube = line.tube(radius=self.r)
+
+        # Add mesh with controlled shading
+        plotter.add_mesh(
+            tube,
+            color=cl,
+            smooth_shading=False,   # IMPORTANT
+            ambient=0.5,
+            diffuse=0.5
+        )
+
+        if forces is not None:
+            plotter.add_arrows(self.p, forces, mag=1.0, color='blue')
+
+        if velocity:
+            plotter.add_arrows(self.p, self.v, mag=2.0, color='green')
+
+        return plotter
+
     def __repr__(self):
         T,L,dl,N,R,tck,s = self.get_3D_curve_params()
         return "initial length {0}\nCurrent length {1}\nMax Rcurv {2}\nMin Rcurv {3}".format(self.L_init,L,R.max(),R.min())
@@ -152,8 +184,8 @@ if __name__ == "__main__":
     phi = np.linspace(0.,2*np.pi,n)
     mass = np.ones((n,1))
     path0 = np.array([np.cos(phi),np.sin(phi),0*phi]).T
-    w = Wire(path0,path0,mass,-1,is_fixed=False,r=.25)
+    w = Wire(path0,path0,mass,-1,is_fixed=False,r=.05)
     w.interpolate()
-    w.show()
-    mlab.show()
+    plotter = w.show()
+    plotter.show()
 

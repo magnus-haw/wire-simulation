@@ -20,7 +20,7 @@ def get_3D_curve_params(x,y,z):
     N = array([dTx/kurv,dTy/kurv,dTz/kurv]).T
     R = 1./kurv
 
-    # return tangent, length, normal vector, radius of curvature
+    # return tangent, length, dlength, normal vector, radius of curvature
     return T,L,dl,N,R
 
 
@@ -66,3 +66,40 @@ def get_normal(r):
 
     return N.T
 
+# -------------------------------------------------------------------
+# BASIC FINITE-DIFFERENCE GEOMETRY (Used in NewWire dynamic remeshing)
+# -------------------------------------------------------------------
+
+def arclength(path):
+    """
+    Compute segment lengths and cumulative arclength via FD differences.
+    """
+    diffs = np.roll(path, -1, axis=0) - path
+    ds = np.linalg.norm(diffs, axis=1)
+    s = np.concatenate([[0.0], np.cumsum(ds)[:-1]])
+    return ds, s
+
+
+def tangent_fd(path):
+    """
+    Centered-difference tangent, normalized.
+    """
+    fwd = np.roll(path, -1, axis=0)
+    bwd = np.roll(path, 1, axis=0)
+    T = fwd - bwd
+    n = np.linalg.norm(T, axis=1, keepdims=True)
+    n[n == 0] = 1.0
+    return T / n
+
+
+def curvature_fd(path):
+    """
+    Discrete curvature using dT/ds and FD geometry.
+    """
+    ds, _ = arclength(path)
+    T = tangent_fd(path)
+
+    dT = np.roll(T, -1, axis=0) - np.roll(T, 1, axis=0)
+    dT_norm = np.linalg.norm(dT, axis=1)
+
+    return dT_norm / np.maximum(ds, 1e-12)

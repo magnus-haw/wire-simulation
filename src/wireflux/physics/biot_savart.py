@@ -2,7 +2,6 @@
 from numpy import zeros,gradient as grad,linalg
 from numpy import newaxis,pi
 import numpy as np
-mu0=4e-7*pi
 
 def biot_savart(p, I, path, delta=.01):
     '''Given a point, a current and its path, calculates the magnetic field at that point

@@ -1,0 +1,14 @@
+numpy>=1.20
+scipy>=1.8
+matplotlib>=3.5
+
+# required only if using Mayavi-based visualization
+mayavi>=4.7
+
+# optional visualization and grid tools
+pyvista>=0.38
+
+# testing tools
+pytest>=7.0
+pytest-cov>=4.0
+

@@ -7,7 +7,9 @@ sys.path.append(cwd + "/classes/")
 from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
 from src.wireflux.models.wires import Wire
 from src.wireflux.core.state import State
-from src.wireflux.utils.utility import biot_savart,getBField, get_R, get_normal, get_rect_grid
+from src.wireflux.physics.biot_savart import biot_savart,getBField
+from src.wireflux.utils.geometry import get_R, get_normal
+from src.wireflux.utils.grids import get_rect_grid
 from src.wireflux.core.engine import MultiWireEngine
 
 import matplotlib.pyplot as plt

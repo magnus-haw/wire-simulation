@@ -4,10 +4,13 @@ import abc
 from numpy import array, zeros, cross, gradient as grad, linalg,pi,sin
 from numpy import reshape,shape
 
-from Utility import getBField, get_R, get_normal,smooth,inductance
-from Utility import JxB_force,tension_force,smooth3DVectors
-from Wires import Wire
-from State import State
+from ..physics.biot_savart import getBField
+from ..utils.geometry import get_R, get_normal
+from ..physics.inductance import inductance
+from ..physics.forces import JxB_force,tension_force
+from ..utils.smooth import smooth3DVectors, smooth
+from ..models.wires import Wire
+from .state import State
 
 def defaultBC(state):
     ### Boundary conditions

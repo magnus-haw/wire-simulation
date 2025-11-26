@@ -4,7 +4,7 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from Utility import get_rect_grid
+from utility import get_rect_grid
 from src.wireflux.utils.Constants import mu0, pi, Kb,amu,mass_elec,elec
 from Engine import MultiWireEngine
 from Wires import Wire
