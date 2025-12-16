@@ -24,14 +24,14 @@ class State(object):
         with open(self.fname,'wb') as fout:
             pickle.dump((self.name,self.items,self.time),fout)
 
-    def show(self,forces=None,velocity=False):
+    def show(self,forces=None,velocity=False, plotter=None):
         """Plot items"""
         for i in range(0,len(self.items)):
             item = self.items[i]
             if forces is not None:
-                item.show(forces=forces[i],velocity=velocity)
+                item.show(forces=forces[i],velocity=velocity, plotter=plotter)
             else:
-                item.show(forces=None,velocity=velocity)
+                item.show(forces=None,velocity=velocity, plotter=plotter)
 
     def __repr__(self):
         return "{0}, time: {1}\n  nItems: {2}".format(self.name,self.time,len(self.items))

@@ -1,5 +1,4 @@
 import numpy as np
-import mayavi.mlab as mlab
 import pyvista as pv
 from wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
 from wireflux.core.engine import MultiWireEngine
@@ -96,8 +95,8 @@ if not Load_from_file:
         st.items.append(w)
     #st.items.append(coil)
     st.save()
-st.show(velocity=1)
-plotter.show()
+# st.show(velocity=1)
+# plotter.show()
 #st.save()
 ##################################################
 
@@ -111,7 +110,7 @@ def BC(state):
             wire.r = .15
 
             # Smoothing
-            wire.smooth()                
+            #wire.smooth()                
             
             # Fix first and final segments
             wire.v[0:2,:]= 0.
@@ -137,18 +136,19 @@ def BC(state):
 
 ############## Run simulation engine #############
 sim = MultiWireEngine(st,dt,bc=BC)
-for i in range(1,550):
+for i in range(1,5500):
     new_st = sim.advance()
-    F = sim.forceScheme()
-    if i%1 == 0:
+    if i%200 == 0:
+        plotter = pv.Plotter()
         print(i,new_st.time,new_st.items[0].I,new_st.items[0].p[:,2].max())
         #new_st.save()
-        plt.plot(new_st.items[0].v[:,2])
+        plt.plot(new_st.items[0].p[:,2])
         plt.show()
-        new_st.show(velocity=True)#,forces=F)
-        mlab.show()
+        new_st.show(velocity=True, plotter=plotter)#,forces=F)
+        plotter.show()
+plotter = pv.Plotter()
 new_st.show()
-mlab.show()
+plotter.show()
 ##################################################
 
 

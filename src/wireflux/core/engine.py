@@ -132,7 +132,7 @@ class MultiWireEngine(AbstractEngine):
                 F = JxB_force(wire.p, wire.I, B)
                 F[0:2, :] = 0
                 F[-2:, :] = 0
-                F = smooth3DVectors(F, n=10)
+                #F = smooth3DVectors(F, n=10)
             else:
                 F = None
 
