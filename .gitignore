@@ -104,5 +104,6 @@ venv.bak/
 .mypy_cache/
 
 #personal stuff
+*.DS_Store
 papers/
 *.pickle

@@ -1,6 +1,6 @@
 import numpy as np
 import pyvista as pv
-from src.wireflux.models.wires import Wire
+from wireflux.models.wires import Wire
 
 # spiral example
 N = 300
