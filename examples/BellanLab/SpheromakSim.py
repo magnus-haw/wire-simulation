@@ -1,9 +1,6 @@
 import numpy as np
 import mayavi.mlab as mlab
-import sys,os
-cwd = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(cwd + "/classes/")
-
+import pyvista as pv
 from wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
 from wireflux.core.engine import MultiWireEngine
 from wireflux.models.wires import Wire
@@ -49,15 +46,18 @@ dm = pi*r*r*(loop_len/L0)*rho/n
 
 
 
-Load_from_file =1
+Load_from_file =0
 Time_to_load = 1.33000
 ################ Initial Conditions ################
 if not Load_from_file:
+    
     inner,outer = get_jet_nozzles()
     phi = np.linspace(0.,pi,n)
 
     ### Initialize paths
     mywires=[]
+    plotter = pv.Plotter()
+    #jet_electrodes(plotter=plotter)
     for i in range(0,8):
         start,end = np.array(inner[i]),np.array(outer[i])
         pvec = end-start
@@ -71,10 +71,12 @@ if not Load_from_file:
         yaxis[0,0] = pvec[0]/(R0*2)
 
         path = ((y-y[0])*yaxis + z*zaxis).T + st
-        mlab.plot3d(path[:,0], path[:,1], path[:,2], tube_radius=r0, color=(1-.001*i,.001*i,.001*i))
-
-        mywires.append(Wire(path/L0,path*0,mass,I,r=r,Bp=Bp))
-    mlab.show()
+        
+        newwire = NewWire(path/L0,path*0,mass,I,r=r)
+        newwire.show(plotter=plotter)
+        mywires.append(newwire)
+    plotter.show()
+    
 
     ################ Background solenoid ###############
     ##### Initialize path
@@ -95,7 +97,7 @@ if not Load_from_file:
     #st.items.append(coil)
     st.save()
 st.show(velocity=1)
-mlab.show()
+plotter.show()
 #st.save()
 ##################################################
 

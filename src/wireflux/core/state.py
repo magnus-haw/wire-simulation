@@ -4,10 +4,10 @@ import os
 class State(object):
     """Stores simulation state info, can load/write to pickle file"""
     
-    def __init__(self,name,items=[],time=0,load=1):
+    def __init__(self,name,items=None,time=0,load=1):
         """Initializes state and loads file if it exists"""
         self.name = name
-        self.items = items
+        self.items = [] if items is None else list(items)
         self.time = time
         self.fname = "{0}_{1:.5f}.pickle".format(self.name,self.time)
 

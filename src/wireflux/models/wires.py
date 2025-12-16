@@ -112,31 +112,6 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
     
-    def _show(self, forces=None, velocity=False, plotter=None):
-        if plotter is None:
-            plotter = pv.Plotter()
-
-        if self.is_fixed:
-            cl = (0.84765625, 0.5625, 0.34375)  # copper color for stationary coils
-        else:
-            cl = (1, 0, 0)  # red color for flux ropes
-
-        # Create a tube around the path
-        line = pv.Spline(self.p, len(self.p)*10)  # smooths out the path
-        tube = line.tube(radius=self.r)
-        plotter.add_mesh(tube, color=cl)
-
-        if forces is not None:
-            print(np.shape(forces), np.shape(self.p))
-            arrows = pv.Arrow(start=self.p, direction=forces, scale="auto")
-            # alternatively, use `add_arrows` for batch arrow creation
-            plotter.add_arrows(self.p, forces, mag=1.0, color='blue')
-
-        if velocity:
-            plotter.add_arrows(self.p, self.v, mag=2.0, color='green')
-
-        return plotter
-    
     def show(self, forces=None, velocity=False, plotter=None):
 
         if plotter is None:

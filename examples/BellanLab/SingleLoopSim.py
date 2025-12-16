@@ -1,14 +1,11 @@
 import numpy as np
-import mayavi.mlab as mlab
-import sys,os
-cwd = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(cwd + "/classes/")
 
-from utility import get_rect_grid
-from src.wireflux.utils.Constants import mu0, pi, Kb,amu,mass_elec,elec
-from Engine import MultiWireEngine
-from Wires import Wire
-from State import State
+from wireflux.utils.grids import get_rect_grid
+from wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from wireflux.core.engine import MultiWireEngine
+from wireflux.models.wires import Wire
+from wireflux.models.newwires import NewWire
+from wireflux.core.state import State
 
 import matplotlib.pyplot as plt
 
@@ -56,7 +53,7 @@ height = L*np.sin(phi)
 mass = np.ones((n,1))*np.vstack(np.exp(-height/(0.75*L)))*2*dm
 
 ### Create wire 
-wr = Wire(path,path*0,mass,I,r=r,Bp=1,is_fixed=False)
+wr = NewWire(path,path*0,mass,I,r=r,is_fixed=False)
 ##################################################
 
 

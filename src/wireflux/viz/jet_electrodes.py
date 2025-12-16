@@ -8,14 +8,14 @@ from numpy import array, arange
 blue  = (0.34765625,0.5625,0.84375)
 copper= (0.84765625,0.5625,0.34375)
 
-def jet_electrodes():
-    plotter = pv.Plotter()
-    plotter.set_background("white")
+def jet_electrodes(plotter=None):
+    if plotter is None:
+        plotter = pv.Plotter()
+        plotter.set_background("white")
     plotter, mesh1 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_annular_electrode.stl", 
                                         color=(0.2, 0.4, 0.9))
     plotter, mesh2 = add_stl_to_plotter(plotter, "/Users/mhaw/Desktop/ARCTRON/software/wire-simulation/src/wireflux/viz/jet_inner_elec.stl", 
                                         color=(0.85, 0.56, 0.34))
-    plotter.show()
 
 def get_jet_nozzles():
     ro = 0.355 #meters
