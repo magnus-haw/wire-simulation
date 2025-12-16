@@ -1,6 +1,6 @@
 ### CroFT simulation, quasi-static approx
 
-from src.wireflux.utils.Constants import mu0, pi
+from wireflux.utils.constants import mu0, pi
 from numpy import array, zeros, arange, shape, abs, ones, matrix,sqrt,exp
 from numpy import diff, mgrid, cos, sin, log, newaxis, linalg, cross,arccos
 from numpy import concatenate, arcsin,arctan2,linspace

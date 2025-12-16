@@ -39,18 +39,6 @@ class NewWire(Wire):
         self.rho = None           # density metric
 
     # -------------------------------------------------------------------------
-    # Engine-compatible override: update(dt, forces)
-    # -------------------------------------------------------------------------
-    def update(self, dt, forces):
-        """
-        Engine calls this every timestep.
-        Save forces for force-gradient computation.
-        Then call base-class update for physical motion.
-        """
-        self.last_force = np.array(forces, dtype=float).copy()
-        super().update(dt, forces)
-
-    # -------------------------------------------------------------------------
     # Geometry fundamentals
     # -------------------------------------------------------------------------
     def compute_arclength(self):

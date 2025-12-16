@@ -10,7 +10,7 @@
 It implements:
 
 * **Biot–Savart magnetic fields**
-* **J × B Lorentz forces**
+* **J x B Lorentz forces**
 * **Finite-difference and spline-based curvature evaluation**
 * **Adaptive remeshing to maintain filament quality**
 * **Mass-conserving wire evolution**

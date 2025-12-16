@@ -1,16 +1,16 @@
 ### Wire simulation, quasi-static approx
 import abc
+import numpy as np
 
-from numpy import array, zeros, cross, gradient as grad, linalg,pi,sin
-from numpy import reshape,shape
+from numpy import zeros
+from numpy import reshape, shape
 
-from ..physics.biot_savart import getBField
-from ..utils.geometry import get_R, get_normal
-from ..physics.inductance import inductance
-from ..physics.forces import JxB_force,tension_force
-from ..utils.smooth import smooth3DVectors, smooth
-from ..models.wires import Wire
-from .state import State
+from wireflux.physics.biot_savart import getBField
+from wireflux.physics.inductance import inductance
+from wireflux.physics.forces import JxB_force
+from wireflux.utils.smooth import smooth3DVectors
+from wireflux.models.wires import Wire
+from wireflux.core.state import State
 
 def defaultBC(state):
     ### Boundary conditions
@@ -86,7 +86,7 @@ class MultiWireEngine(AbstractEngine):
 
         return BXi,BYi,BZi
         
-    def forceScheme(self):
+    def _forceScheme(self):
         """Force calculation using Biot-Savart B-field calc"""
         forces = []
         paths = [wire.p for wire in self.state.items]
@@ -107,6 +107,39 @@ class MultiWireEngine(AbstractEngine):
             forces.append(F)
         return forces        
     
+    def forceScheme(self):
+        forces = []
+
+        # Stack all wire nodes
+        offsets = []
+        all_points = []
+        for wire in self.state.items:
+            offsets.append(len(all_points))
+            all_points.append(wire.p)
+        all_points = np.vstack(all_points)
+
+        # Compute B everywhere once
+        B_all = getBField(all_points, self.state.items)
+
+        # Slice per wire
+        idx = 0
+        for wire in self.state.items:
+            n = len(wire.p)
+            B = B_all[idx:idx+n]
+            idx += n
+
+            if not wire.is_fixed:
+                F = JxB_force(wire.p, wire.I, B)
+                F[0:2, :] = 0
+                F[-2:, :] = 0
+                F = smooth3DVectors(F, n=10)
+            else:
+                F = None
+
+            forces.append(F)
+
+        return forces
+
     def stepScheme(self,forces):
         """Forward difference scheme for wires"""
         new_time= self.state.time + self.dt
@@ -131,9 +164,11 @@ class MultiWireEngine(AbstractEngine):
     def getEnergy(self):
         norm = 1e-7
         energy =0
-        for wr1 in self.state.items:
-            for wr2 in self.state.items:
-                energy += 0.5*wr1.I*wr2.I*inductance(wr1.p,wr2.p,rwire=wr2.r,norm=norm)
+        for i, wr1 in enumerate(self.state.items):
+            for j, wr2 in enumerate(self.state.items[i:], start=i):
+                factor = 1.0 if i == j else 2.0
+                energy += 0.5 * factor * wr1.I * wr2.I * inductance(...)
+
         return energy
 
     def __repr__(self):

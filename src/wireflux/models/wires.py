@@ -4,7 +4,6 @@ from scipy.interpolate import interp1d,splprep,splev
 import matplotlib.pyplot as plt
 
 from wireflux.utils.smooth import smooth3DVectors
-from wireflux.physics.inductance import inductance
 
 class Wire(object):
     """

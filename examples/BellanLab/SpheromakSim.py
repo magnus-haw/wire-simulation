@@ -4,11 +4,12 @@ import sys,os
 cwd = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(cwd + "/classes/")
 
-from src.wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
-from Engine import MultiWireEngine
-from Wires import Wire
-from State import State
-from electrodes.jet_electrodes import get_jet_nozzles,annulus_electrode,center_electrode
+from wireflux.utils.constants import mu0, pi, Kb,amu,mass_elec,elec
+from wireflux.core.engine import MultiWireEngine
+from wireflux.models.wires import Wire
+from wireflux.models.newwires import NewWire
+from wireflux.core.state import State
+from wireflux.viz.jet_electrodes import get_jet_nozzles,jet_electrodes
 
 import matplotlib.pyplot as plt
 
@@ -52,8 +53,6 @@ Load_from_file =1
 Time_to_load = 1.33000
 ################ Initial Conditions ################
 if not Load_from_file:
-    annulus_electrode()
-    center_electrode()
     inner,outer = get_jet_nozzles()
     phi = np.linspace(0.,pi,n)
 

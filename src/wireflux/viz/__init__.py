@@ -1,4 +1,3 @@
-from .mayavi_tools import plot_streamlines
-from .plot_helpers import plot_wire
+from .load_stl import add_stl_to_plotter
 
-__all__ = ["plot_streamlines", "plot_wire"]
+__all__ = ["add_stl_to_plotter"]
