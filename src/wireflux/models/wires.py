@@ -26,34 +26,77 @@ class Wire(object):
     _min_len = 5
     _max_len = 200
     
-    def __init__(self,p,v,m,I,r=1,Bp=1.,L_init=0,is_fixed=0,params={}):
-        """Initializes wire, p: array(n,3), v: array(n,3), m: array(n,1)"""
-        sp,sv,sm = np.shape(p),np.shape(v),np.shape(m)
-        
-        try:
-            if sp[1] == 3 and sp[0] >= Wire._min_len and sv == sp and sm[0] == sp[0] and sm[1] ==1:
-                self.p = np.array(p) # position
-                self.v = np.array(v) # velocity
-                self.m = np.array(m) # mass
-                self.Bp = float(Bp)  # axial flux
-                self.I = float(I)    # current
-                self.r = float(r)    # wire minor radius
-                self.is_fixed = bool(is_fixed) # boolean for stationary wires
-                
-                self.params = dict(params)
-                self.ind = Wire.npaths
-                Wire.npaths += 1
+    def __init__(self, p, v, m, I, r=1.0, Bp=1.0, 
+                 L_init=None,
+                 is_fixed=False, 
+                 params=None):
+        """
+        Initialize moving wire in 3D.
 
-                T,CumLen,dl,N,R,tck,s = self.get_3D_curve_params()
-                if L_init == 0:
-                    self.L_init = CumLen[-1] # initial length
-                else:
-                    self.L_init = L_init
+        p : (N,3) positions
+        v : (N,3) velocities
+        m : (N,1) mass per node
+        """
 
-                self.total_mass = self.m.sum()
-        except:
-            print(sp,sv,sm)
-            print("Wire initialization error: incorrect shape of input arrays")
+        # ---- Convert to arrays ----
+        p = np.asarray(p, dtype=float)
+        v = np.asarray(v, dtype=float)
+        m = np.asarray(m, dtype=float)
+
+        # ---- Shape checks ----
+        if p.ndim != 2 or p.shape[1] != 3:
+            raise ValueError(f"p must have shape (N,3), got {p.shape}")
+
+        N = p.shape[0]
+
+        if N < Wire._min_len:
+            raise ValueError(f"Wire must have ≥ {Wire._min_len} nodes, got {N}")
+
+        if v.shape != (N, 3):
+            raise ValueError(f"v must have shape {(N,3)}, got {v.shape}")
+
+        if m.shape != (N, 1):
+            raise ValueError(f"m must have shape {(N,1)}, got {m.shape}")
+
+        if not np.all(np.isfinite(p)):
+            raise ValueError("Positions contain non-finite values")
+
+        if not np.all(np.isfinite(v)):
+            raise ValueError("Velocities contain non-finite values")
+
+        if not np.all(np.isfinite(m)):
+            raise ValueError("Mass contains non-finite values")
+
+        if np.any(m <= 0):
+            raise ValueError("Mass values must be positive")
+
+        # ---- Assign core state ----
+        self.p = p.copy()
+        self.v = v.copy()
+        self.m = m.copy()
+
+        self.I = float(I)
+        self.r = float(r)
+        self.Bp = float(Bp)
+
+        self.is_fixed = bool(is_fixed)
+        self.last_force = None
+
+        self.params = {} if params is None else dict(params)
+
+        self.ind = Wire.npaths
+        Wire.npaths += 1
+
+        # ---- Derived quantities ----
+        self.total_mass = float(self.m.sum())
+
+        # Compute geometric properties safely
+        _, CumLen, *_ = self.get_3D_curve_params()
+
+        if L_init is None:
+            self.L_init = float(CumLen[-1])
+        else:
+            self.L_init = float(L_init)
 
     def smooth(self):
         newp = smooth3DVectors(self.p,n=5)
@@ -136,8 +179,8 @@ class Wire(object):
             diffuse=0.5
         )
 
-        if forces is not None:
-            plotter.add_arrows(self.p, forces, mag=1.0, color='blue')
+        if forces:
+            plotter.add_arrows(self.p, self.last_force, mag=1.0, color='blue')
 
         if velocity:
             plotter.add_arrows(self.p, self.v, mag=2.0, color='green')

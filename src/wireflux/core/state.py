@@ -29,7 +29,7 @@ class State(object):
         for i in range(0,len(self.items)):
             item = self.items[i]
             if forces is not None:
-                item.show(forces=forces[i],velocity=velocity, plotter=plotter)
+                item.show(forces=forces,velocity=velocity, plotter=plotter)
             else:
                 item.show(forces=None,velocity=velocity, plotter=plotter)
 

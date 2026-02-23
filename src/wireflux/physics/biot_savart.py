@@ -19,7 +19,7 @@ def _biot_savart(p, I, path, delta=.01):
     B *= I/2.
     return B
 
-def biot_savart(p, I, path, delta=0.01):
+def biot_savart(p, I, path, delta=2., beta=1.e5):
     """
     Segment-based Biot-Savart law (normalized units).
 
@@ -74,7 +74,7 @@ def _getBField(path, wires):
             B[p,:] += biot_savart(path[p], wire.I, wire.p,delta=wire.r)
     return B
 
-def getBField(path, wires):
+def getBField(path, wires, beta=0.):
     """
     Compute magnetic field at a set of observation points due to multiple wires,
     using a segment-based, vectorized Biot-Savart formulation.
@@ -100,7 +100,7 @@ def getBField(path, wires):
     for wire in wires:
         p = wire.p
         I = wire.I
-        delta = wire.r
+        delta = 2*wire.r
 
         # Segment vectors and midpoints
         dl = p[1:] - p[:-1]                  # (Ns, 3)

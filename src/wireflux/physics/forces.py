@@ -59,6 +59,39 @@ def JxB_force(p, current, B):
 
     return F_node
 
+def pressure_repulsion(p_i, p_j, k_rep, dr, power=2):
+    """
+    Compute repulsive force between two wires.
+    Returns (F_on_i, F_on_j).
+    """
+
+    cutoff = dr
+
+    F_i = np.zeros_like(p_i)
+    F_j = np.zeros_like(p_j)
+
+    diff = p_i[:, None, :] - p_j[None, :, :]
+    dist = np.linalg.norm(diff, axis=2)
+
+    mask = (dist < cutoff) & (dist > 1e-12)
+
+    if not np.any(mask):
+        return F_i, F_j
+
+    r_hat = np.zeros_like(diff)
+    r_hat[mask] = diff[mask] / dist[mask][:, None]
+
+    strength = np.zeros_like(dist)
+    strength[mask] = k_rep * (1 - dist[mask] / cutoff) ** power
+
+    F_pair = strength[:, :, None] * r_hat
+
+    # Sum contributions
+    F_i += np.sum(F_pair, axis=1)
+    F_j -= np.sum(F_pair, axis=0)  # equal & opposite
+
+    return F_i, F_j
+
 
 def tension_force(wire):
     '''

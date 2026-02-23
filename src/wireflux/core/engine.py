@@ -1,15 +1,16 @@
 ### Wire simulation, quasi-static approx
 import abc
 import numpy as np
-
+import matplotlib.pyplot as plt
 from numpy import zeros
 from numpy import reshape, shape
 
 from wireflux.physics.biot_savart import getBField
 from wireflux.physics.inductance import inductance
-from wireflux.physics.forces import JxB_force
+from wireflux.physics.forces import JxB_force, pressure_repulsion
 from wireflux.utils.smooth import smooth3DVectors
 from wireflux.models.wires import Wire
+from wireflux.models.newwires import NewWire
 from wireflux.core.state import State
 
 def defaultBC(state):
@@ -34,6 +35,10 @@ class AbstractEngine(object):
         self.state = state
         self.dt = dt
         self.bc = bc
+        self.enable_repulsion = True
+        self.repulsion_cutoff = 2.0 * self.state.items[0].r
+        self.repulsion_strength = 0.5
+        self.repulsion_power = 2
 
     @abc.abstractmethod
     def forceScheme(self):
@@ -54,6 +59,7 @@ class AbstractEngine(object):
         '''Return new simulation state using '''
         forces = self.forceScheme()
         self.state = self.stepScheme(forces)
+        
         self.correctBoundaries()
         return self.state
 
@@ -138,6 +144,31 @@ class MultiWireEngine(AbstractEngine):
 
             forces.append(F)
 
+        # --- Add inter-wire repulsion ---
+        if self.enable_repulsion:
+
+            for i in range(len(self.state.items)):
+                for j in range(i+1, len(self.state.items)):
+
+                    wi = self.state.items[i]
+                    wj = self.state.items[j]
+
+                    if wi.is_fixed and wj.is_fixed:
+                        continue
+
+                    F_i, F_j = pressure_repulsion(wi.p, wj.p,1,.5)
+
+                    if forces[i] is not None:
+                        forces[i] += F_i
+                    if forces[j] is not None:
+                        forces[j] += F_j
+
+        # --- Boundary constraints ---
+        for k, wire in enumerate(self.state.items):
+            if forces[k] is not None:
+                forces[k][0:2, :] = 0
+                forces[k][-2:, :] = 0
+        
         return forces
 
     def stepScheme(self,forces):
@@ -152,13 +183,12 @@ class MultiWireEngine(AbstractEngine):
                 new_m = wire.m.copy()
 
                 ### Initialize new wire 
-                new_wire = Wire(new_p,new_v,new_m,wire.I,r=wire.r,Bp=wire.Bp,L_init=wire.L_init)
+                new_wire = NewWire(new_p,new_v,new_m,wire.I,r=wire.r,Bp=wire.Bp,L_init=wire.L_init)
+                new_wire.last_force = F
                 new_wire.interpolate()
             else:
                 new_wire = wire
-            
             new_state.items.append(new_wire)
-
         return new_state
 
     def getEnergy(self):

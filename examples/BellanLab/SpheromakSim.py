@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 ### Dimensional scales
 L0 = 0.075 #m
 r0 = 0.015 #m
-I0 = 50000. #Amps
+I0 = 10000. #Amps
 nden0 = 5e20 #m^-3
-n = 11
+n = 45
 
 ### Derived scales
 rho0 = nden0*amu*40. #kg/m^3
@@ -46,7 +46,7 @@ dm = pi*r*r*(loop_len/L0)*rho/n
 
 
 Load_from_file =0
-Time_to_load = 1.33000
+Time_to_load = 0
 ################ Initial Conditions ################
 if not Load_from_file:
     
@@ -55,7 +55,7 @@ if not Load_from_file:
 
     ### Initialize paths
     mywires=[]
-    plotter = pv.Plotter()
+    # plotter = pv.Plotter()
     #jet_electrodes(plotter=plotter)
     for i in range(0,8):
         start,end = np.array(inner[i]),np.array(outer[i])
@@ -64,7 +64,10 @@ if not Load_from_file:
         st[0:2] = end
         R0 = np.linalg.norm(pvec)/2.
         y,z = R0*np.cos(phi),R0*np.sin(phi)
-        mass = np.ones((n,1))*np.vstack(np.exp(-z/(0.75*L)))*2*dm
+        if i<15:
+            mass = np.ones((n,1))*np.vstack(np.exp(-z/(0.15*L)))*2*dm
+        else:
+            mass = np.ones((n,1))*np.vstack(np.exp(-z/(0.05*L)))*4*dm
         yaxis,zaxis = np.zeros((3,1)),np.zeros((3,1))
         yaxis[1,0],zaxis[2,0] = pvec[1]/(R0*2), 1.
         yaxis[0,0] = pvec[0]/(R0*2)
@@ -72,9 +75,9 @@ if not Load_from_file:
         path = ((y-y[0])*yaxis + z*zaxis).T + st
         
         newwire = NewWire(path/L0,path*0,mass,I,r=r)
-        newwire.show(plotter=plotter)
+        # newwire.show(plotter=plotter)
         mywires.append(newwire)
-    plotter.show()
+    # plotter.show()
     
 
     ################ Background solenoid ###############
@@ -123,28 +126,48 @@ def BC(state):
             wire.v[2:-2,2][wire.p[2:-2,2] <= r0] = 0
             wire.p[2:-2,2][wire.p[2:-2,2] <= r0] = r0-.0001
 
+            # impervious central axis
+            rad = np.sqrt(wire.p[2:-2,0]**2 + wire.p[2:-2,1]**2)
+            
+
             # remove large z velocities
-            wire.v[2:-2,2][wire.v[2:-2,2] <= -r0] = 0
-            wire.v[2:-2,0][wire.v[2:-2,2] > 25] = 0
-            wire.v[2:-2,1][wire.v[2:-2,2] > 25] = 0
-            wire.v[2:-2,2][wire.v[2:-2,2] > 25] = 0
+            # wire.v[2:-2,2][wire.v[2:-2,2] <= -r0] = 0
+            # wire.v[2:-2,0][wire.v[2:-2,2] > 25] = 0
+            # wire.v[2:-2,1][wire.v[2:-2,2] > 25] = 0
+            # wire.v[2:-2,2][wire.v[2:-2,2] > 25] = 0
 
             # mass BC
-            wire.m[0,0], wire.m[-1,0] = pi*(wire.r)**3, pi*(wire.r)**3
-            wire.total_mass = wire.m.sum()
+            wire.m[0,0], wire.m[-1,0] = .1176, .1176
+            wire.m[1,0], wire.m[-2,0] = .1176, .1176
+            #wire.total_mass = 1.
 ##################################################
 
 ############## Run simulation engine #############
 sim = MultiWireEngine(st,dt,bc=BC)
+# plt.figure(1)
+# plt.plot(st.items[0].m)
+# plt.show()
+
 for i in range(1,5500):
     new_st = sim.advance()
-    if i%200 == 0:
+    if  i%150==0 and i > 630:
         plotter = pv.Plotter()
         print(i,new_st.time,new_st.items[0].I,new_st.items[0].p[:,2].max())
-        #new_st.save()
-        plt.plot(new_st.items[0].p[:,2])
+        # new_st.save()
+        plt.figure(0)
+        plt.title("Velocity")
+        plt.plot(new_st.items[0].v[:,0],"ro-")
+        plt.plot(new_st.items[0].v[:,1])
+        plt.plot(new_st.items[0].v[:,2],"go-")
+
+        plt.figure(2)
+        plt.title("Position")
+        plt.plot(new_st.items[0].p[:,0],new_st.items[0].p[:,2],"ro-")
+        plt.figure(1)
+        plt.plot(new_st.items[0].m)
         plt.show()
-        new_st.show(velocity=True, plotter=plotter)#,forces=F)
+        print(len(new_st.items[0].m))
+        new_st.show(velocity=False, plotter=plotter)
         plotter.show()
 plotter = pv.Plotter()
 new_st.show()
@@ -153,16 +176,16 @@ plotter.show()
 
 
 ################# Plot Results ###################
-plt.figure(0)
-plt.title("forces")
-forces = sim.forceScheme()[0]
-plt.plot(forces[:,0],forces[:,2])
+# plt.figure(0)
+# plt.title("forces")
+# forces = sim.forceScheme()[0]
+# plt.plot(forces[:,0],forces[:,2])
 
-plt.figure(1)
-plt.title("position")
-wire = sim.state.items[0]
-plt.plot(wire.p[:,0],wire.p[:,2],'bo')
-plt.show()
+# plt.figure(1)
+# plt.title("position")
+# wire = sim.state.items[0]
+# plt.plot(wire.p[:,0],wire.p[:,2],'bo')
+# plt.show()
 
 ##new_st.show()
 ##mlab.show()
