@@ -24,8 +24,9 @@ class NewWire(Wire):
     # Constructor (same signature as Wire)
     # -------------------------------------------------------------------------
     def __init__(self, p, v, m, I, is_fixed=False, r=.25,
-                 alpha=.0001, beta=1.0, Bp=1.0, smoothing=0.5, L_init=None):
-        super().__init__(p, v, m, I, Bp=Bp, is_fixed=is_fixed, r=r, L_init=L_init)
+                 alpha=.0001, beta=1.0, Bp=1.0, smoothing=0.5, L_init=None,
+                 color='red', transparency=0):
+        super().__init__(p, v, m, I, Bp=Bp, is_fixed=is_fixed, r=r, L_init=L_init, color=color, transparency=transparency)
         self.alpha = alpha        # curvature weight
         self.beta = beta          # force-gradient weight
         self.smoothing = smoothing
@@ -38,6 +39,10 @@ class NewWire(Wire):
         self.curvature = None
         self.force_grad = None
         self.rho = None           # density metric
+
+        # Visualization Info
+        self.color = color
+        self.transparency = transparency
 
     # -------------------------------------------------------------------------
     # Geometry fundamentals

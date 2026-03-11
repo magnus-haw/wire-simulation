@@ -29,7 +29,9 @@ class Wire(object):
     def __init__(self, p, v, m, I, r=1.0, Bp=1.0, 
                  L_init=None,
                  is_fixed=False, 
-                 params=None):
+                 params=None,
+                 color='red',
+                 transparency=0):
         """
         Initialize moving wire in 3D.
 
@@ -82,6 +84,9 @@ class Wire(object):
         self.is_fixed = bool(is_fixed)
         self.last_force = None
 
+        self.color = color
+        self.transparency = transparency
+        
         self.params = {} if params is None else dict(params)
 
         self.ind = Wire.npaths
@@ -164,7 +169,7 @@ class Wire(object):
         if self.is_fixed:
             cl = 'sienna'  # copper
         else:
-            cl = 'red'  # red
+            cl = self.color  # user-defined color, default red
 
         # Create smoothed line and tube
         line = pv.Spline(self.p, len(self.p)*10)
@@ -174,6 +179,7 @@ class Wire(object):
         plotter.add_mesh(
             tube,
             color=cl,
+            opacity=np.clip(1-self.transparency,0,1),
             smooth_shading=False,   # IMPORTANT
             ambient=0.5,
             diffuse=0.5
