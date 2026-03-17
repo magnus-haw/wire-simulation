@@ -103,22 +103,24 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
     # Segment vectors, segment unit vector, & end-to-end length
     dl = path[1:] - path[:-1]                                     # pt-to-pt vectors (N-1, 3)
     
-    s  = path - path[0,:]                                         # Progressive distance along path (N, 3)
-    t  = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N, 3)
+    s        = path - path[0,:]                                         # Progressive distance along path (N, 3)
+    t        = np.zeros(path.shape)                                     
+    t[:-1,:] = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N, 3)
+    t[-1,:]  = t[-2,:]                                                  # Copy last unit vector into final position TODO: This should probably be replaced w/ BC normal vector, I feel -JQM20260316
     
     l  = s[-1]   # Last entry of s vector is total linear length of wire centroid
 
-    # Sum approximation of shape inductance integral
+    # Summation approximation of shape inductance integral
     L_curve = np.nansum(np.round(np.divide(np.sum(t.reshape(-1,3)[None,:,:]*t.reshape(-1,3)[:,None,:], axis=2), 
                                                np.linalg.norm((path.reshape(-1,3)[None,:,:] - path.reshape(-1,3)[:,None,:]), axis=2), precision) 
                         - np.round(np.divide(1,np.subtract.outer(s,s)), precision)) # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive attempt... probably best rewritten with np.einsum, which I will come back to soon hopefully -JQM20260316
 
-    L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # Inductance of a long, small-radius circular wire with uniform current density
+    L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # L of long, small-radius circular wire w/ uniform J
     
-    L_sum = L_curve + L_parr   # Approximate self-inductance by fast protocol presented by Majic, 2024, is given by sum of integrated 'shape inductance' & equivalent length straight wire
+    L_sum = L_curve + L_parr   # Approximate self-inductance is sum of 'shape inductance' integral & inductance of equivalent length straight wire (Majic, 2024)
 
     # Physical scaling
-    L_self = mu0 * Lsum / (4 * pi)   # TODO: Not sure if we need to divide by 4pi here... -JQM20260316
+    L_self = mu0 * Lsum # / (4 * pi)   # TODO: Not sure if we need to divide by 4pi here... -JQM20260316
 
     if norm_mag is not None:
         L_self /= norm_mag
@@ -153,13 +155,13 @@ def inductance(path1, path2=None, rwire=0.001, norm_mag=None, part='mutual', pre
     """
     L = 0
     
-    if (part=='mutual'):
+    if (part=='mutual' or part=='Mutual' or part=='m' or part=='M'):
         if path2 is not None: L = mutual_inductance(path1,path2,rwire=rwire,norm_mag=norm_mag)
         else: print('Second path needed for mutual inductance calculation')
     
-    elif (part=='self'):
+    elif (part=='self' or part=='Self' or part=='s' or part=='S'):
         L = self_inductance(path1,rwire=rwire,norm_mag=norm_mag)
-        
+    
     else:
         print('Unknown Inductance type requested')
 
