@@ -23,7 +23,8 @@ def _inductance(path1,path2,rwire=0.001,norm=None):
         return mu0*L/(4*pi)/norm
 
 
-def inductance(path1, path2, rwire=0.001, norm_mag=None):
+
+def mutual_inductance(path1, path2, rwire=0.001, norm_mag=None, precision=15):
     """
     Compute mutual inductance between two wires
     using a segment-based Neumann formulation.
@@ -36,7 +37,9 @@ def inductance(path1, path2, rwire=0.001, norm_mag=None):
         Effective wire radius (regularization length).
     norm : float or None
         Optional normalization factor.
-
+    precision : int
+        Number of decimals to round values to
+        
     Returns
     -------
     L : float
@@ -65,9 +68,99 @@ def inductance(path1, path2, rwire=0.001, norm_mag=None):
     Lsum = np.sum(dot / rmag)
 
     # Physical scaling
-    L = mu0 * Lsum / (4 * pi)
+    L_mut = mu0 * Lsum / (4 * pi)
 
     if norm_mag is not None:
-        L /= norm_mag
+        L_mut /= norm_mag
+
+    return L_mut
+
+
+
+def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
+    """
+    Compute self inductance of any given wire
+    using a segment-based Neumann formulation.
+    From Majic 2024, "An integral for self-inductance of thin wires"
+
+    Parameters
+    ----------
+    path : ndarray, shape (N, 3)
+        Node coordinates of the wire path, endpts of segments.
+    rwire : float
+        Effective wire radius (regularization length).
+    norm : float or None
+        Optional normalization factor.
+    precision : int
+        Number of decimals to round values to
+
+    Returns
+    -------
+    L : float
+        Approximate self-inductance for a thin wire (SI units unless normalized).
+    """
+
+    # Segment vectors, segment unit vector, & end-to-end length
+    dl = path[1:] - path[:-1]                                     # pt-to-pt vectors (N-1, 3)
+    
+    s  = path - path[0,:]                                         # Progressive distance along path (N, 3)
+    t  = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N, 3)
+    
+    l  = s[-1]   # Last entry of s vector is total linear length of wire centroid
+
+    # Sum approximation of shape inductance integral
+    L_curve = np.nansum(np.round(np.divide(np.sum(t.reshape(-1,3)[None,:,:]*t.reshape(-1,3)[:,None,:], axis=2), 
+                                               np.linalg.norm((path.reshape(-1,3)[None,:,:] - path.reshape(-1,3)[:,None,:]), axis=2), precision) 
+                        - np.round(np.divide(1,np.subtract.outer(s,s)), precision)) # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive attempt... probably best rewritten with np.einsum, which I will come back to soon hopefully -JQM20260316
+
+    L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # Inductance of a long, small-radius circular wire with uniform current density
+    
+    L_sum = L_curve + L_parr   # Approximate self-inductance by fast protocol presented by Majic, 2024, is given by sum of integrated 'shape inductance' & equivalent length straight wire
+
+    # Physical scaling
+    L_self = mu0 * Lsum / (4 * pi)   # TODO: Not sure if we need to divide by 4pi here... -JQM20260316
+
+    if norm_mag is not None:
+        L_self /= norm_mag
+
+    return L_self
+
+
+
+def inductance(path1, path2=None, rwire=0.001, norm_mag=None, part='mutual', precision=15):
+    """
+    Simple wrapper function for returning either mutual or self inductance of one or two paths.
+
+    Parameters
+    ----------
+    path1 : ndarray, shape (N, 3)
+        Node coordinates of the wire path, endpts of segments.
+    path2 : ndarray, shape (N, 3)
+        Node coordinates of second wire path, endpts of segments, for use with mutual inductance.
+    rwire : float
+        Effective wire radius (regularization length).
+    norm : float or None
+        Optional normalization factor.
+    part : string
+        String determining which part of inductance (self or mutual) is to be returned
+    precision : int
+        Number of decimals to round values to
+        
+    Returns
+    -------
+    L : float
+        Approximate self-inductance for a thin wire (SI units unless normalized).
+    """
+    L = 0
+    
+    if (part=='mutual'):
+        if path2 is not None: L = mutual_inductance(path1,path2,rwire=rwire,norm_mag=norm_mag)
+        else: print('Second path needed for mutual inductance calculation')
+    
+    elif (part=='self'):
+        L = self_inductance(path1,rwire=rwire,norm_mag=norm_mag)
+        
+    else:
+        print('Unknown Inductance type requested')
 
     return L

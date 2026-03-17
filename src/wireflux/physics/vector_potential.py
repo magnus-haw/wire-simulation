@@ -2,8 +2,6 @@ import numpy as np
 from numpy.linalg import norm
 from ..utils.constants import mu0, pi
 
-
-
 def _inductance(path1,path2,rwire=0.001,norm=None):
     '''
     Given two wire paths, calculates the mutual inductance in SI units
