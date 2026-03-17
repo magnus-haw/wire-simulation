@@ -113,7 +113,7 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
     # Summation approximation of shape inductance integral
     L_curve = np.nansum(np.round(np.divide(np.sum(t.reshape(-1,3)[None,:,:]*t.reshape(-1,3)[:,None,:], axis=2), 
                                                np.linalg.norm((path.reshape(-1,3)[None,:,:] - path.reshape(-1,3)[:,None,:]), axis=2), precision) 
-                        - np.round(np.divide(1,np.subtract.outer(s,s)), precision)) # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive attempt... probably best rewritten with np.einsum, which I will come back to soon hopefully -JQM20260316
+                        - np.round(np.divide(1,np.subtract.outer(s,s)), precision))) # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive attempt... probably best rewritten with np.einsum, which I will come back to soon hopefully -JQM20260316
 
     L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # L of long, small-radius circular wire w/ uniform J
     
