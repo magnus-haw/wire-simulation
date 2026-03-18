@@ -103,7 +103,7 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
     # Segment vectors, segment unit vector, & end-to-end length
     dl = path[1:] - path[:-1]                                     # pt-to-pt vectors (N-1, 3)
     
-    s        = path - path[0,:]                                         # Progressive distance along path (N, 3)
+    s        = np.linalg.norm(path - path[0,:],axis=1,keepdims=False)   # Progressive distance along path (N, 3)
     t        = np.zeros(path.shape)                                     
     t[:-1,:] = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N, 3)
     t[-1,:]  = t[-2,:]                                                  # Copy last unit vector into final position TODO: This should probably be replaced w/ BC normal vector, I feel -JQM20260316
@@ -111,16 +111,18 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
     l  = s[-1]   # Last entry of s vector is total linear length of wire centroid
 
     # Summation approximation of shape inductance integral
-    L_curve = np.nansum(np.round(np.divide(np.sum(t.reshape(-1,3)[None,:,:]*t.reshape(-1,3)[:,None,:], axis=2), 
-                                               np.linalg.norm((path.reshape(-1,3)[None,:,:] - path.reshape(-1,3)[:,None,:]), axis=2), precision) 
-                        - np.round(np.divide(1,np.subtract.outer(s,s)), precision))) # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive attempt... probably best rewritten with np.einsum, which I will come back to soon hopefully -JQM20260316
-
+    # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive approach... -JQM20260317
+    L_curve = np.nansum(np.round(np.divide(np.sum(           t[np.newaxis,:,:] *    t[:,np.newaxis,:], axis=2), 
+                                           np.linalg.norm(path[np.newaxis,:,:] - path[:,np.newaxis,:], axis=2)), precision) - 
+                        np.round(np.divide(1,np.abs(np.subtract.outer(s,s))), precision) ) 
+                        # NOTE: I decided to just leave runtime warnings on, though every np.inf is subtracted by another np.inf--the nansum should always iron out to 0 in those positions. This is part of what makes the actual analytical computation feasible. -JQM2060317
+    
     L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # L of long, small-radius circular wire w/ uniform J
     
     L_sum = L_curve + L_parr   # Approximate self-inductance is sum of 'shape inductance' integral & inductance of equivalent length straight wire (Majic, 2024)
 
     # Physical scaling
-    L_self = mu0 * Lsum # / (4 * pi)   # TODO: Not sure if we need to divide by 4pi here... -JQM20260316
+    L_self = mu0 * L_sum # / (4 * pi)   # TODO: Not sure if we need to divide by 4pi here... -JQM20260316
 
     if norm_mag is not None:
         L_self /= norm_mag
