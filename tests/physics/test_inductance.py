@@ -193,9 +193,8 @@ def test_self_inductance_of_arc():
     c4 = make_arc(radius=l/(angle4), theta_f=angle4)
     c5 = make_arc(radius=l/(angle5), theta_f=angle5)
 
-    # From Majic, 2024, 'An Integral for the Self-inductance of thin wires' (all estimated from plot digitizer, values in m)
-    L_parr = 2*(l*np.log( (1 / r)*(l + np.sqrt(l**2 + r**2))) - np.sqrt(l**2 + r**2) + l/4 + r )
-    def analyticVals(xspace,l,gran=1000):
+    # From Majic, 2024
+    def analytic_arc_L(xspace,l,gran=1000):
         vals = np.zeros(xspace.shape)
     
         for i in range(len(vals)):
@@ -203,31 +202,21 @@ def test_self_inductance_of_arc():
             vals[i] = 2*l*((4/theta)*np.sin(theta/2) + np.log((4/theta)*np.tan(theta/4)) - (4/theta)*Ti2(np.tan(theta/4),gran=gran) - 1)
     
         return vals
+
+    analyticVals = analytic_arc_L([angle1,angle2,angle3,angle4,angle5])
     
     L1 = inductance(c1, rwire=r, part='self')
     L2 = inductance(c2, rwire=r, part='self')
     L3 = inductance(c3, rwire=r, part='self')
     L4 = inductance(c4, rwire=r, part='self')
     L5 = inductance(c5, rwire=r, part='self')
-    print("Computed inductance of arc with angle " + str(angle1) + ": " + str(L1/mu0))
-    print("Computed inductance of arc with angle " + str(angle2) + ": " + str(L2/mu0))
-    print("Computed inductance of arc with angle " + str(angle3) + ": " + str(L3/mu0))
-    print("Computed inductance of arc with angle " + str(angle4) + ": " + str(L4/mu0))
-    print("Computed inductance of arc with angle " + str(angle5) + ": " + str(L5/mu0))
-
-    #analyticVals[angle1] = analytic(angle1)
-    #analyticVals[angle2] = analytic(angle2)
-    #analyticVals[angle3] = analytic(angle3)
-    #analyticVals[angle4] = analytic(angle4)
-    #analyticVals[angle1] = analytic(angle5)
+    L_parr = 2*mu0*(l*np.log( (1 / r)*(l + np.sqrt(l**2 + r**2))) - np.sqrt(l**2 + r**2) + l/4 + r )
     
-    print("Analytic values: " + str(analyticVals))
-    
-    assert (np.isclose(L1, mu0*analyticVals[angle1],rtol=.1) and 
-            np.isclose(L2, mu0*analyticVals[angle2],rtol=.1) and 
-            np.isclose(L3, mu0*analyticVals[angle3],rtol=.1) and
-            np.isclose(L4, mu0*analyticVals[angle4],rtol=.1) and
-            np.isclose(L5, mu0*analyticVals[angle5],rtol=.1))
+    assert (np.isclose(L1-L_parr, mu0*analyticVals[0],rtol=.1) and 
+            np.isclose(L2-L_parr, mu0*analyticVals[1],rtol=.1) and 
+            np.isclose(L3-L_parr, mu0*analyticVals[2],rtol=.1) and
+            np.isclose(L4-L_parr, mu0*analyticVals[3],rtol=.1) and
+            np.isclose(L5-L_parr, mu0*analyticVals[4],rtol=.1))
 
 def test_self_inductance_of_helix(plot=True):
     pitch1 = np.pi/36
