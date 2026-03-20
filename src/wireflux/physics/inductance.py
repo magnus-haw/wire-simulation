@@ -117,11 +117,11 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
     # Summation approximation of shape inductance integral
     # TODO: I tried to vectorize this, for efficiency w/ long or multiple paths, but I feel this is probably a naive approach... -JQM20260317
     # TODO: Added safety features, because this method is not particularly fast or memory conscious above 1000pts in a wire. I'm not sure if this is useful... -JQM20260318
-        L_curve = np.nansum((np.round(np.divide(np.sum(t[np.newaxis,:,:] *    t[:,np.newaxis,:], axis=2), 
-                                               np.linalg.norm(midpts[np.newaxis,:,:] - midpts[:,np.newaxis,:], axis=2)), precision) - 
-                            np.round(np.divide(1,np.abs(np.subtract.outer(s,s))), precision)) * 
-                            (np.linalg.norm(dl,axis=1)[np.newaxis,:] * np.linalg.norm(dl,axis=1)[:,np.newaxis]) ) 
-                            # NOTE: I decided to just leave runtime warnings on, though every np.inf is subtracted by another np.inf--the nansum should always iron out to 0 in those positions. This is part of what makes the actual analytical computation feasible. -JQM2060317
+    L_curve = np.nansum((np.round(np.divide(np.sum(t[np.newaxis,:,:] *    t[:,np.newaxis,:], axis=2), 
+                                           np.linalg.norm(midpts[np.newaxis,:,:] - midpts[:,np.newaxis,:], axis=2)), precision) - 
+                        np.round(np.divide(1,np.abs(np.subtract.outer(s,s))), precision)) * 
+                        (np.linalg.norm(dl,axis=1)[np.newaxis,:] * np.linalg.norm(dl,axis=1)[:,np.newaxis]) ) 
+                        # NOTE: I decided to just leave runtime warnings on, though every np.inf is subtracted by another np.inf--the nansum should always iron out to 0 in those positions. This is part of what makes the actual analytical computation feasible. -JQM2060317
     
     L_parr = 2*(l*np.log((l + np.sqrt(l**2 + rwire**2))/rwire)-np.sqrt(l**2+rwire**2)+l/4+rwire)   # L of long, small-radius circular wire w/ uniform J
     L_sum = L_curve + L_parr   # Approximate self-inductance is sum of 'shape inductance' integral & inductance of equivalent length straight wire (Majic, 2024)
