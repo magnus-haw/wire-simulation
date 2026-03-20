@@ -102,14 +102,16 @@ def self_inductance(path, rwire=0.001, norm_mag=None, precision=15):
 
     # Segment vectors, segment unit vector, & end-to-end length
     N  = path.shape[0]
+    midpts = 0.5 * (path[1:] + path[:-1])   # (N1-1, 3)
     
-    dl        = np.zeros(path.shape)                                     
-    dl[:-1,:] = path[1:] - path[:-1]                                     # pt-to-pt vectors (N, 3)
-    dl[-1,:]  = dl[-2,:]                                                  # Copy last unit vector into final position TODO: Not sure what the appropriate approach here is... -JQM20260318
+    dl = path[1:,:] - path[:-1,:]   # pt-to-pt vectors (N-1,3)
     
-    s        = np.cumsum(np.linalg.norm(dl,axis=1)) #np.linalg.norm(path - path[0,:],axis=1,keepdims=False)   # Progressive distance along path (N, 3)
-    t = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N, 3)
-    
+    t = np.divide(dl, np.linalg.norm(dl,axis=1,keepdims=True))   # Unit vectors along path (N-1, 3)
+   
+    s = np.zeros(dl.shape[0])
+    s[1:] = np.cumsum(np.linalg.norm((dl[1:,:]+dl[:-1,:])/2,axis=1))   # Progressive distance along path (N-1, 3)
+    s += np.linalg.norm(dl[0]/2 + dl[-1]/2)   # Adding mix of last two dl preserves length without affecting delta-s
+ 
     l  = s[-1]   # Last entry of s vector is total linear length of wire centroid
 
     # Summation approximation of shape inductance integral
