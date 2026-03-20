@@ -15,7 +15,7 @@ def make_straight_wire(n=400, length=1.0, axis="z"):
     raise ValueError
 
 
-def make_arc(n=400, radius=1.0,theta_f=2*np.pi, z=0.0):
+def make_arc(n=1000, radius=1.0,theta_f=2*np.pi, z=0.0):
     theta = np.linspace(0, theta_f, n, endpoint=False)
     return np.column_stack((
         radius*np.cos(theta),
@@ -24,7 +24,7 @@ def make_arc(n=400, radius=1.0,theta_f=2*np.pi, z=0.0):
     ))
 
 
-def make_helix(n=400,radius=1.0,pitch=np.pi/4,curve_length=1.0):
+def make_helix(n=1000,radius=1.0,pitch=np.pi/4,curve_length=1.0):
     a = radius
     c = pitch/2*np.pi
     b = np.sqrt(a**2 + c**2)
@@ -36,6 +36,15 @@ def make_helix(n=400,radius=1.0,pitch=np.pi/4,curve_length=1.0):
         c*s/b
     ))
 
+
+def Ti2(x,gran=1000):
+    tspace = np.linspace(0,x,gran)
+    
+    invTanIntegral = (np.arctan(tspace)/tspace)*(tspace[1]-tspace[0])
+    
+    res = np.nansum(invTanIntegral)
+    
+    return res
     
 
 def test_mutual_inductance_parallel_wires_asymptotic():
@@ -114,42 +123,58 @@ def test_mutual_inductance_scales_with_length():
 
 def test_self_inductance_scales_with_length():
     l1 = 5.0
-    l2 = 10.0
-    d = 0.01
+    l2 = 50.0
+    r = 0.001
 
     p1a = make_straight_wire(length=l1)
     p1b = make_straight_wire(length=l2)
 
-    L1 = inductance(p1a,rwire=d,part='self')
-    L2 = inductance(p1b,rwire=d,part='self')
+    L1 = inductance(p1a, rwire=r, norm_mag=mu0, part='self')
+    L2 = inductance(p1b, rwire=r, norm_mag=mu0, part='self')
+    print("Computed:")
+    print(L1)
+    print(L2)
+    print("ratio: " +str(L2/L1))
 
+    # From Edward B. Rosa, "The Self and Mutual Inductance of Linear Conductors," 1894, p. 305
+    # NOTE: We are assuming the relative permeability of the wire is near unity, for simplicity. This should constitute a negligible contribution for all but the smallest wires.
     def L_analytic(l):
-        return (l*np.log((l + np.sqrt(l**2 + d**2)) / d)
-            - np.sqrt(l**2 + d**2)
-            + d )
-
-
-    expected_ratio = L_analytic(L2) / L_analytic(L1)
+        return 2*(l*np.log( (1 / r)*(l + np.sqrt(l**2 + r**2))) - np.sqrt(l**2 + r**2) + l/4 + r )
+    print("analytic")
+    print(L_analytic(l1))
+    print(L_analytic(l2))
+    print("ratio: " + str(L_analytic(l2)/L_analytic(l1)))
+    print("error: " + str( (L_analytic(l2)/L_analytic(l1) - L2/L1)/(L_analytic(l2)/L_analytic(l1)) ))
+    
+    expected_ratio = L_analytic(l2) / L_analytic(l1)
     
     assert np.isclose(L2/L1, expected_ratio, rtol=0.02)
 
 def test_self_inductance_scales_with_radius():
     l = 1.0
-    d1 = 0.01
-    d2 = 0.1
+    r1 = 0.01
+    r2 = 0.1
 
-    p1 = make_straight_wire(length=L1)
+    p1 = make_straight_wire(length=l)
 
-    L1 = inductance(p1,rwire=d1,part='self')
-    L2 = inductance(p1,rwire=d2,part='self')
+    L1 = inductance(p1, rwire=r1, norm_mag=mu0, part='self')
+    L2 = inductance(p1, rwire=r2, norm_mag=mu0, part='self')
+    print("Computed:")
+    print(L1)
+    print(L2)
+    print("ratio: " +str(L2/L1))
 
-    def L_analytic(d):
-        return ( l*np.log((l + np.sqrt(l**2 + d**2)) / d)
-            - np.sqrt(l**2 + d**2)
-            + d)
+    # From Rosa
+    def L_analytic(r):
+        return 2*(l*np.log( (1 / r)*(l + np.sqrt(l**2 + r**2))) - np.sqrt(l**2 + r**2) + l/4 + r )
 
+    print("analytic")
+    print(L_analytic(r1))
+    print(L_analytic(r2))
+    print("ratio: " + str(L_analytic(r2)/L_analytic(r1)))
+    print("error: " + str( (L_analytic(r2)/L_analytic(r1) - L2/L1)/(L_analytic(r2)/L_analytic(r1)) ))
 
-    expected_ratio = L_analytic(d2) / L_analytic(d1)
+    expected_ratio = L_analytic(r2) / L_analytic(r1)
     
     assert np.isclose(L2/L1, expected_ratio, rtol=0.02)
 
@@ -159,22 +184,44 @@ def test_self_inductance_of_arc():
     angle3 = 3*np.pi/2
     angle4 = 6.24018
     angle5 = 6.28
-    d=0.001
+    r = 0.001
+    l = 1
 
-    c1 = make_arc(radius=1/(angle1), theta_f=angle1)      # All arcs have a length of 1m
-    c2 = make_arc(radius=1/(angle2), theta_f=angle2)
-    c3 = make_arc(radius=1/(angle3), theta_f=angle3)
-    c4 = make_arc(radius=1/(angle4), theta_f=angle4)
-    c5 = make_arc(radius=1/(angle5), theta_f=angle5)
+    c1 = make_arc(radius=l/(angle1), theta_f=angle1)      # All arcs have a length of 1m
+    c2 = make_arc(radius=l/(angle2), theta_f=angle2)
+    c3 = make_arc(radius=l/(angle3), theta_f=angle3)
+    c4 = make_arc(radius=l/(angle4), theta_f=angle4)
+    c5 = make_arc(radius=l/(angle5), theta_f=angle5)
 
     # From Majic, 2024, 'An Integral for the Self-inductance of thin wires' (all estimated from plot digitizer, values in m)
-    analyticVals = {np.pi/2:-0.09014,np.pi:-0.64665,3*np.pi/2:-1.79887,6.24018:-2.91797,6.28:-2.90692}
+    L_parr = 2*(l*np.log( (1 / r)*(l + np.sqrt(l**2 + r**2))) - np.sqrt(l**2 + r**2) + l/4 + r )
+    def analyticVals(xspace,l,gran=1000):
+        vals = np.zeros(xspace.shape)
+    
+        for i in range(len(vals)):
+            theta = xspace[i]
+            vals[i] = 2*l*((4/theta)*np.sin(theta/2) + np.log((4/theta)*np.tan(theta/4)) - (4/theta)*Ti2(np.tan(theta/4),gran=gran) - 1)
+    
+        return vals
+    
+    L1 = inductance(c1, rwire=r, part='self')
+    L2 = inductance(c2, rwire=r, part='self')
+    L3 = inductance(c3, rwire=r, part='self')
+    L4 = inductance(c4, rwire=r, part='self')
+    L5 = inductance(c5, rwire=r, part='self')
+    print("Computed inductance of arc with angle " + str(angle1) + ": " + str(L1/mu0))
+    print("Computed inductance of arc with angle " + str(angle2) + ": " + str(L2/mu0))
+    print("Computed inductance of arc with angle " + str(angle3) + ": " + str(L3/mu0))
+    print("Computed inductance of arc with angle " + str(angle4) + ": " + str(L4/mu0))
+    print("Computed inductance of arc with angle " + str(angle5) + ": " + str(L5/mu0))
 
-    L1 = inductance(c1, rwire=d, part='self')
-    L2 = inductance(c2, rwire=d, part='self')
-    L3 = inductance(c3, rwire=d, part='self')
-    L4 = inductance(c4, rwire=d, part='self')
-    L5 = inductance(c5, rwire=d, part='self')
+    #analyticVals[angle1] = analytic(angle1)
+    #analyticVals[angle2] = analytic(angle2)
+    #analyticVals[angle3] = analytic(angle3)
+    #analyticVals[angle4] = analytic(angle4)
+    #analyticVals[angle1] = analytic(angle5)
+    
+    print("Analytic values: " + str(analyticVals))
     
     assert (np.isclose(L1, mu0*analyticVals[angle1],rtol=.1) and 
             np.isclose(L2, mu0*analyticVals[angle2],rtol=.1) and 
@@ -188,9 +235,9 @@ def test_self_inductance_of_helix(plot=True):
     pitch3 = np.pi/4
     d=0.001
 
-    h1 = make_helix(radius=0.025, curve_length=0.5, pitch=pitch1)
-    h2 = make_helix(radius=0.025, curve_length=0.5, pitch=pitch2)
-    h3 = make_helix(radius=0.025, curve_length=0.5, pitch=pitch3)
+    h1 = make_helix(radius=0.0125, curve_length=50, pitch=pitch1)
+    h2 = make_helix(radius=0.0125, curve_length=50, pitch=pitch2)
+    h3 = make_helix(radius=0.0125, curve_length=50, pitch=pitch3)
 
     # From Weaver, 2011, 'The Inductance of a Helix of Any Pitch', pg. 18 (last one is estimated from plot digitizer, values in H)
     analyticVals = {np.pi/36:6.8808e-6,np.pi/12:5.0111e-6,np.pi/4:6.9784e-6}
@@ -198,5 +245,10 @@ def test_self_inductance_of_helix(plot=True):
     L1 = inductance(h1, rwire=d, part='self')
     L2 = inductance(h2, rwire=d, part='self')
     L3 = inductance(h3, rwire=d, part='self')
+    print("Computed inductance of helix with pitch " + str(pitch1) + ": " + str(L1))
+    print("Computed inductance of helix with pitch " + str(pitch2) + ": " + str(L2))
+    print("Computed inductance of helix with pitch " + str(pitch3) + ": " + str(L3))
+
+    print("Analytic values: " + str(analyticVals))
     
     assert (np.isclose(L1, analyticVals[pitch1],rtol=.1) and np.isclose(L2, analyticVals[pitch2],rtol=.1) and np.isclose(L3, analyticVals[pitch3],rtol=.1))
