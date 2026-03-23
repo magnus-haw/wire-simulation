@@ -26,7 +26,7 @@ def make_arc(n=1000, radius=1.0,theta_f=2*np.pi, z=0.0):
 
 def make_helix(n=1000,radius=1.0,pitch=np.pi/4,curve_length=1.0):
     a = radius
-    c = pitch/2*np.pi
+    c = pitch/(2*np.pi)
     b = np.sqrt(a**2 + c**2)
     
     s = np.linspace(0, curve_length, n, endpoint=False)
@@ -37,14 +37,7 @@ def make_helix(n=1000,radius=1.0,pitch=np.pi/4,curve_length=1.0):
     ))
 
 
-def Ti2(x,gran=1000):
-    tspace = np.linspace(0,x,gran)
-    
-    invTanIntegral = (np.arctan(tspace)/tspace)*(tspace[1]-tspace[0])
-    
-    res = np.nansum(invTanIntegral)
-    
-    return res
+
     
 
 def test_mutual_inductance_parallel_wires_asymptotic():
@@ -193,6 +186,16 @@ def test_self_inductance_of_arc():
     c4 = make_arc(radius=l/(angle4), theta_f=angle4)
     c5 = make_arc(radius=l/(angle5), theta_f=angle5)
 
+
+    def Ti2(x,gran=1000):
+        tspace = np.linspace(0,x,gran)
+        
+        invTanIntegral = (np.arctan(tspace)/tspace)*(tspace[1]-tspace[0])
+        
+        res = np.nansum(invTanIntegral)
+        
+        return res
+    
     # From Majic, 2024
     def analytic_arc_L(xspace,l,gran=1000):
         vals = np.zeros(xspace.shape)
