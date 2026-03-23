@@ -28,10 +28,12 @@ class State(object):
         """Plot items"""
         for i in range(0,len(self.items)):
             item = self.items[i]
+            color = item.color
+            transparency = item.transparency
             if forces is not None:
-                item.show(forces=forces,velocity=velocity, plotter=plotter)
+                item.show(forces=forces,velocity=velocity, plotter=plotter, color=color, transparency=transparency)
             else:
-                item.show(forces=None,velocity=velocity, plotter=plotter)
+                item.show(forces=None,velocity=velocity, plotter=plotter, color=color, transparency=transparency)
 
     def __repr__(self):
         return "{0}, time: {1}\n  nItems: {2}".format(self.name,self.time,len(self.items))

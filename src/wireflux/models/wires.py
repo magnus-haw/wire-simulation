@@ -30,7 +30,7 @@ class Wire(object):
                  L_init=None,
                  is_fixed=False, 
                  params=None,
-                 color='red',
+                 color="red",
                  transparency=0):
         """
         Initialize moving wire in 3D.
@@ -160,16 +160,16 @@ class Wire(object):
         # return tangent vector, length, normal vector, radius of curvature, spline_params, normed parameterization
         return T,L,dl,N,R,tck,s
     
-    def show(self, forces=None, velocity=False, plotter=None):
+    def show(self, forces=None, velocity=False, plotter=None, color=None, transparency=0.):
 
         if plotter is None:
             plotter = pv.Plotter()
 
         # Set color per wire type
         if self.is_fixed:
-            cl = 'sienna'  # copper
-        else:
-            cl = self.color  # user-defined color, default red
+            color = 'sienna'  # copper
+        elif (not self.is_fixed) and (color is None):
+            color = self.color  # user-defined color, default red
 
         # Create smoothed line and tube
         line = pv.Spline(self.p, len(self.p)*10)
@@ -178,7 +178,7 @@ class Wire(object):
         # Add mesh with controlled shading
         plotter.add_mesh(
             tube,
-            color=cl,
+            color=color,
             opacity=np.clip(1-self.transparency,0,1),
             smooth_shading=False,   # IMPORTANT
             ambient=0.5,

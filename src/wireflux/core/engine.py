@@ -183,7 +183,7 @@ class MultiWireEngine(AbstractEngine):
                 new_m = wire.m.copy()
 
                 ### Initialize new wire 
-                new_wire = NewWire(new_p,new_v,new_m,wire.I,r=wire.r,Bp=wire.Bp,L_init=wire.L_init)
+                new_wire = NewWire(new_p,new_v,new_m,wire.I,r=wire.r,Bp=wire.Bp,L_init=wire.L_init,color=wire.color,transparency=wire.transparency)
                 new_wire.last_force = F
                 new_wire.interpolate()
             else:

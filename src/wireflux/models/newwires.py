@@ -25,7 +25,7 @@ class NewWire(Wire):
     # -------------------------------------------------------------------------
     def __init__(self, p, v, m, I, is_fixed=False, r=.25,
                  alpha=.0001, beta=1.0, Bp=1.0, smoothing=0.5, L_init=None,
-                 color='red', transparency=0):
+                 color="red", transparency=0):
         super().__init__(p, v, m, I, Bp=Bp, is_fixed=is_fixed, r=r, L_init=L_init, color=color, transparency=transparency)
         self.alpha = alpha        # curvature weight
         self.beta = beta          # force-gradient weight
