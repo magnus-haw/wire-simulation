@@ -24,9 +24,9 @@ def make_arc(n=1000, radius=1.0,theta_f=2*np.pi, z=0.0):
     ))
 
 
-def make_helix(n=1000,radius=1.0,pitch=np.pi/4,curve_length=1.0):
+def make_helix(n=1000,radius=1.0,pitchAngle=np.pi/4,curve_length=1.0):
     a = radius
-    c = pitch/(2*np.pi)
+    c = a*np.tan(pitchAngle)
     b = np.sqrt(a**2 + c**2)
     
     s = np.linspace(0, curve_length, n, endpoint=False)
@@ -221,6 +221,7 @@ def test_self_inductance_of_arc():
             np.isclose(L4-L_parr, mu0*analyticVals[3],rtol=.1) and
             np.isclose(L5-L_parr, mu0*analyticVals[4],rtol=.1))
 
+    
 def test_self_inductance_of_helix(plot=True):
     pitch1 = np.pi/36
     pitch2 = np.pi/12
@@ -232,15 +233,34 @@ def test_self_inductance_of_helix(plot=True):
     h3 = make_helix(radius=0.0125, curve_length=50, pitch=pitch3)
 
     # From Weaver, 2011, 'The Inductance of a Helix of Any Pitch', pg. 18 (last one is estimated from plot digitizer, values in H)
-    analyticVals = {np.pi/36:6.8808e-6,np.pi/12:5.0111e-6,np.pi/4:6.9784e-6}
+    #analyticVals = {np.pi/36:6.8808e-6,np.pi/12:5.0111e-6,np.pi/4:6.9784e-6}
 
+    # From Majic, 2024
+    def analytic_Helix_L(a,b,c,N,dl):
+        isum = 0
+        
+        for i in range(N):
+            jsum = 0
+            
+            for j in range(i):
+                partA = np.divide( ( (a**2)*np.cos( (i*dl - j*dl) / b ) + c**2),
+                                  (b**2)*np.sqrt( 4*(a**2)*( np.sin( (i*dl - j*dl) / (2*b) ) )**2 + (c**2)*( (i*dl - j*dl) / b )**2 ) )
+                partB = np.divide(1, i*dl - j*dl)
+    
+                jsum += (partA - partB)*dl
+    
+            isum += jsum*dl
+        
+        L = 2*isum
+    
+        return L
+    
     L1 = inductance(h1, rwire=d, part='self')
     L2 = inductance(h2, rwire=d, part='self')
     L3 = inductance(h3, rwire=d, part='self')
-    print("Computed inductance of helix with pitch " + str(pitch1) + ": " + str(L1))
-    print("Computed inductance of helix with pitch " + str(pitch2) + ": " + str(L2))
-    print("Computed inductance of helix with pitch " + str(pitch3) + ": " + str(L3))
 
-    print("Analytic values: " + str(analyticVals))
+    analyticVals = [analytic_Helix_L(a=0.125,b=np.sqrt(0.125**2 + (0.125*np.tan(pitch1))**2),c=0.125*np.tan(pitch1)),
+                    analytic_Helix_L(a=0.125,b=np.sqrt(0.125**2 + (0.125*np.tan(pitch2))**2),c=0.125*np.tan(pitch2)),
+                    analytic_Helix_L(a=0.125,b=np.sqrt(0.125**2 + (0.125*np.tan(pitch3))**2),c=0.125*np.tan(pitch3))]
     
     assert (np.isclose(L1, analyticVals[pitch1],rtol=.1) and np.isclose(L2, analyticVals[pitch2],rtol=.1) and np.isclose(L3, analyticVals[pitch3],rtol=.1))
