@@ -59,7 +59,7 @@ def biot_savart(p, I, path, delta=2., beta=1.e5):
     B = np.sum(dB, axis=0)
 
     # Normalization (matches your previous convention)
-    B *= (mu0 * I / 2.0 / pi)
+    B *= (I / 2.0)
 
     return B
 
@@ -120,7 +120,7 @@ def getBField(path, wires, beta=0.):
         dB = np.cross(r,dl[None, :, :]) / (rmag[..., None]**3)
 
         # Sum over segments, scale by current
-        B += (mu0 * I / 2.0 / pi) * np.sum(dB, axis=1)
+        B += (I / 2.0) * np.sum(dB, axis=1)
 
     return B
 
